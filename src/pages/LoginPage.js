@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
+import { useNavigate } from 'react-router-dom';
 
 const LoginPage = () => {
+    const navigate = useNavigate();
+    
     const [aadharNumber, setAadharNumber] = useState('');
     const [password, setPassword] = useState('');
     const [userType, setUserType] = useState('Normal Patient');
@@ -20,20 +22,14 @@ const LoginPage = () => {
     useEffect(() => {
         const slideInterval = setInterval(() => {
             setCurrentSlide((prevSlide) => (prevSlide + 1) % slides.length);
-        }, 3000); // Change slide every 3 seconds
+        }, 3000);
 
         return () => clearInterval(slideInterval);
     }, []);
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = (e) => {
         e.preventDefault();
-        try {
-            const response = await axios.post('/api/users/login', { aadharNumber, password, userType });
-            localStorage.setItem('token', response.data.token);
-            console.log(response.data);
-        } catch (error) {
-            console.error(error);
-        }
+        navigate('/dashboard'); // Updated route to navigate directly to the dashboard
     };
 
     const handleLanguageChange = (e) => {
@@ -57,7 +53,7 @@ const LoginPage = () => {
             flex: 1,
             position: 'relative',
             overflow: 'hidden',
-            height: '100%', // Ensure full height
+            height: '100%',
         },
         slideShow: {
             position: 'absolute',
@@ -68,12 +64,16 @@ const LoginPage = () => {
             transition: 'opacity 1s ease-in-out',
         },
         slideImage: {
-            width: '100%',
-            height: '100%',
+            width: '90%',
+            height: 'auto',
             objectFit: 'cover',
-            position: 'absolute', // Ensure it's positioned absolutely
-            top: 0,
-            left: 0,
+            position: 'absolute',
+            top: '20px',
+            bottom: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            borderRadius: '20px',
+            boxShadow: '0px 8px 15px rgba(0, 0, 0, 0.1)',
         },
         dotsWrapper: {
             position: 'absolute',
@@ -107,8 +107,8 @@ const LoginPage = () => {
             flexDirection: 'column',
             alignItems: 'center',
             backgroundColor: '#ffffff',
-            padding: '30px',
-            borderRadius: '10px',
+            padding: '50px 40px',
+            borderRadius: '30px',
             boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
             transition: 'transform 0.3s ease',
         },
@@ -209,25 +209,13 @@ const LoginPage = () => {
                         {t('Language')}
                     </button>
                     <div style={styles.dropdownMenu}>
-                        <button
-                            value="en"
-                            onClick={handleLanguageChange}
-                            style={styles.dropdownItem}
-                        >
+                        <button value="en" onClick={handleLanguageChange} style={styles.dropdownItem}>
                             English
                         </button>
-                        <button
-                            value="hi"
-                            onClick={handleLanguageChange}
-                            style={styles.dropdownItem}
-                        >
+                        <button value="hi" onClick={handleLanguageChange} style={styles.dropdownItem}>
                             हिंदी
                         </button>
-                        <button
-                            value="mar"
-                            onClick={handleLanguageChange}
-                            style={styles.dropdownItem}
-                        >
+                        <button value="mar" onClick={handleLanguageChange} style={styles.dropdownItem}>
                             मराठी
                         </button>
                     </div>
@@ -262,10 +250,7 @@ const LoginPage = () => {
                         <option value="Pharmacy">{t('Pharmacy')}</option>
                         <option value="Nominee">{t('Nominee')}</option>
                     </select>
-                    <button
-                        type="submit"
-                        style={styles.button}
-                    >
+                    <button type="submit" style={styles.button}>
                         {t('Login')}
                     </button>
                 </form>
