@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 const LoginPage = () => {
     const navigate = useNavigate();
-    
+
     const [aadharNumber, setAadharNumber] = useState('');
     const [password, setPassword] = useState('');
     const [userType, setUserType] = useState('Normal Patient');
@@ -29,7 +29,12 @@ const LoginPage = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        navigate('/dashboard'); // Updated route to navigate directly to the dashboard
+        if (userType === 'Normal Patient') {
+            navigate('/normal-patient');
+        } else if (userType === 'Hospital Doc') {
+            navigate('/dashboard');
+        }
+
     };
 
     const handleLanguageChange = (e) => {
@@ -243,12 +248,8 @@ const LoginPage = () => {
                         style={styles.select}
                     >
                         <option value="Normal Patient">{t('Normal Patient')}</option>
-                        <option value="Forum User">{t('Forum User')}</option>
-                        <option value="Fam Doc">{t('Fam Doc')}</option>
+                        {/*<option value="Forum User">{t('Forum User')}</option>*/}
                         <option value="Hospital Doc">{t('Hospital Doc')}</option>
-                        <option value="Nurse/Ward Boy">{t('Nurse/Ward Boy')}</option>
-                        <option value="Pharmacy">{t('Pharmacy')}</option>
-                        <option value="Nominee">{t('Nominee')}</option>
                     </select>
                     <button type="submit" style={styles.button}>
                         {t('Login')}
