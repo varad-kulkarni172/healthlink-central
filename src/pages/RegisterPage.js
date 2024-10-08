@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios'; // Import axios for making API requests
 
 const RegisterPage = () => {
 
@@ -31,9 +32,31 @@ const RegisterPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        alert('Registration succesful. Please Log in to continue !');
-        navigate('/login');
+    
+        // Prepare data to send to the backend
+        const data = {
+            aadharNumber,
+            name,
+            password,
+            role: userType === 'Normal Patient' ? 'patient' : 'doctor', // Map to backend role
+        };
+    
+        try {
+            // Send registration request to the backend
+            const response = await axios.post('http://localhost:5000/api/users/register', data); // Corrected URL
+    
+            if (response.status === 201) {
+                alert('Registration successful. Please log in to continue!');
+                navigate('/login');
+            }
+        } catch (error) {
+            console.error('Registration failed:', error);
+            // Check if there is a response from the server
+            const errorMessage = error.response ? error.response.data.error : 'Registration failed. Please try again.';
+            alert(errorMessage);
+        }
     };
+    
 
     const handleLanguageChange = (e) => {
         i18n.changeLanguage(e.target.value);
@@ -213,25 +236,13 @@ const RegisterPage = () => {
                         {t('Language')}
                     </button>
                     <div style={styles.dropdownMenu}>
-                        <button
-                            value="en"
-                            onClick={handleLanguageChange}
-                            style={styles.dropdownItem}
-                        >
+                        <button value="en" onClick={handleLanguageChange} style={styles.dropdownItem}>
                             English
                         </button>
-                        <button
-                            value="hi"
-                            onClick={handleLanguageChange}
-                            style={styles.dropdownItem}
-                        >
+                        <button value="hi" onClick={handleLanguageChange} style={styles.dropdownItem}>
                             हिंदी
                         </button>
-                        <button
-                            value="mar"
-                            onClick={handleLanguageChange}
-                            style={styles.dropdownItem}
-                        >
+                        <button value="mar" onClick={handleLanguageChange} style={styles.dropdownItem}>
                             मराठी
                         </button>
                     </div>
@@ -267,7 +278,6 @@ const RegisterPage = () => {
                         style={styles.select}
                     >
                         <option value="Normal Patient">{t('Normal Patient')}</option>
-                       {/* <option value="Forum User">{t('Forum User')}</option>*/}
                         <option value="Hospital Doc">{t('Hospital Doc')}</option>
                     </select>
                     <button

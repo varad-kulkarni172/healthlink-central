@@ -100,10 +100,11 @@ const HomePage = () => {
             </div>
 
             <style>
-    {`
+{`
+    /* CSS for floating title (unchanged) */
     .floating-title {
         position: absolute;
-        animation: float 3s infinite;
+        animation: float 5s infinite;
     }
 
     @keyframes float {
@@ -118,43 +119,63 @@ const HomePage = () => {
         }
     }
 
+    /* Rain animation for medical objects */
     .medical-object {
         position: absolute;
         width: 50px;
         height: 50px;
-        top: 20%;
+        top: -100px; /* Start offscreen */
+        animation: rain 10s linear infinite;
+        opacity: 0.9; /* Slight transparency for a smooth effect */
+    }
+
+    /* Keyframes for rain effect */
+    @keyframes rain {
+        0% {
+            transform: translateY(-100px); /* Start offscreen */
+            opacity: 0; /* Fade in at the start */
+        }
+        10% {
+            opacity: 1;
+        }
+        100% {
+            transform: translateY(110vh); /* Fall to bottom of screen */
+            opacity: 0; /* Fade out near the bottom */
+        }
+    }
+
+    /* Specific styles for each object to randomize their horizontal positions and speed */
+    .health-care {
+        left: 10%; /* Random horizontal start */
+        animation-duration: 15s; /* Vary duration for realism */
+    }
+    .hospital {
+        left: 30%;
+        animation-duration: 12s;
+    }
+    .immunization {
         left: 50%;
-        transform-origin: 0 200px; /* Center point */
-        animation: circular-revolve 10s infinite linear, self-rotate 5s infinite linear;
+        animation-duration: 14s;
     }
-
-    @keyframes circular-revolve {
-        0% {
-            transform: rotate(0deg) translateX(200px); /* Distance from center */
-        }
-        100% {
-            transform: rotate(360deg) translateX(200px); /* Distance from center */
-        }
+    .medical-care {
+        left: 70%;
+        animation-duration: 13s;
     }
-
-    @keyframes self-rotate {
-        0% {
-            transform: rotate(0deg);
-        }
-        100% {
-            transform: rotate(360deg);
-        }
+    .medical-record {
+        left: 90%;
+        animation-duration: 11s;
     }
-
-    .health-care { animation-delay: 0s; transform-origin: 0 180px; } /* Adjust distance */
-    .hospital { animation-delay: 1s; transform-origin: 0 190px; } /* Adjust distance */
-    .immunization { animation-delay: 2s; transform-origin: 0 200px; } /* Adjust distance */
-    .medical-care { animation-delay: 3s; transform-origin: 0 210px; } /* Adjust distance */
-    .medical-record { animation-delay: 4s; transform-origin: 0 220px; } /* Adjust distance */
-    .pill { animation-delay: 5s; transform-origin: 0 230px; } /* Adjust distance */
-    .products { animation-delay: 6s; transform-origin: 0 240px; } /* Adjust distance */
+    .pill {
+        left: 20%;
+        animation-duration: 16s;
+    }
+    .products {
+        left: 60%;
+        animation-duration: 14s;
+    }
 `}
 </style>
+
 
             {/* Images revolving around the center */}
             <img src="/images/health-care.png" alt="Health Care" className="medical-object health-care" />

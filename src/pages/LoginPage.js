@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const LoginPage = () => {
     const navigate = useNavigate();
@@ -25,17 +26,30 @@ const LoginPage = () => {
         }, 3000);
 
         return () => clearInterval(slideInterval);
-    }, []);
+    }, [slides.length]);
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (userType === 'Normal Patient') {
-            navigate('/normal-patient');
-        } else if (userType === 'Hospital Doc') {
-            navigate('/dashboard');
+    const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    const data = { aadharNumber, password };
+
+    try {
+        const response = await axios.post('http://localhost:5000/api/users/login', data);
+
+        if (response.status === 200) {
+            const { redirectUrl, token } = response.data;
+            console.log(`Redirect URL: ${redirectUrl}`); // Debugging
+            localStorage.setItem('token', token);
+            navigate(redirectUrl);
         }
+    } catch (error) {
+        console.error('Login failed:', error);
+        alert('Login failed. Please check your credentials.');
+    }
+};
 
-    };
+    
+    
 
     const handleLanguageChange = (e) => {
         i18n.changeLanguage(e.target.value);

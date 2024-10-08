@@ -1,3 +1,5 @@
+//config/db.js
+//require('dotenv').config();
 const { Sequelize } = require('sequelize');
 
 const sequelize = new Sequelize('healthlinkcentral', 'root', 'LemonLaw@1', {
@@ -5,4 +7,4 @@ const sequelize = new Sequelize('healthlinkcentral', 'root', 'LemonLaw@1', {
     dialect: 'mysql'
 });
 
-module.exports = sequelize;
+module.exports = sequelize 
