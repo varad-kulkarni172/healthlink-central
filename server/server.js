@@ -6,6 +6,9 @@ const dotenv = require('dotenv');
 const sequelize = require('./config/db');
 const userRoutes = require('./routes/userRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const appointmentRoutes = require('./routes/appointmentRoutes');
+const medicalrecordsRoutes = require('./routes/medicalRecordRoutes');
+const medicalBillRoutes = require('./routes/medicalBillRoutes');
 
 // Load environment variables
 dotenv.config();
@@ -20,6 +23,9 @@ app.use('/uploads', express.static('uploads'));
 // Routes
 app.use('/api/users', userRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/appointments', appointmentRoutes);
+app.use('/api/medical-records', medicalrecordsRoutes);
+app.use('/api/medical-bills', medicalBillRoutes);
 
 // Database connection and server start
 sequelize.sync({ force:false })

@@ -1,33 +1,108 @@
 import React, { useState, useRef, useEffect } from 'react';
+import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiLogOut } from 'react-icons/fi';
 import { FaArrowUp } from 'react-icons/fa';
 import logo from '../images/logo.png';
 
 const NormalPatient = () => {
-    // Appointment-related states
-    const [appointments, setAppointments] = useState([
-        { id: 1, name: 'John Doe', time: '10:00 AM', status: 'Pending' },
-        { id: 2, name: 'Jane Smith', time: '11:30 AM', status: 'Pending' },
-    ]);
-
+    
+    const [appointments, setAppointments] = useState([]);
     const [newAppointment, setNewAppointment] = useState({ name: '', time: '' });
     const [postponedAppointments, setPostponedAppointments] = useState([]);
     const [completedAppointments, setCompletedAppointments] = useState([]);
 
-    // Medical Records states
+    useEffect(() => {
+        axios.get('/api/appointments')
+            .then(response => setAppointments(response.data))
+            .catch(error => console.error('Error fetching appointments:', error));
+    }, []);
+    
     const [medicalRecords, setMedicalRecords] = useState([]);
     const [newMedicalRecord, setNewMedicalRecord] = useState({ date: '', name: '', result: '' });
 
-    // Medical Bills states
+    useEffect(() => {
+        const fetchMedicalRecords = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/api/medical-records');
+                setMedicalRecords(response.data);
+            } catch (error) {
+                console.error('Error fetching medical records:', error);
+            }
+        };
+
+        fetchMedicalRecords();
+    }, []);
+
+    const handleAddMedicalRecord = async () => {
+        try {
+            const response = await axios.post('http://localhost:5000/api/medical-records', newMedicalRecord);
+            setMedicalRecords([...medicalRecords, response.data]);
+            setNewMedicalRecord({ date: '', name: '', result: '' });
+        } catch (error) {
+            console.error('Error adding medical record:', error);
+        }
+    };
+
+    const handleDeleteMedicalRecord = async (id) => {
+        try {
+            await axios.delete(`http://localhost:5000/api/medical-records/${id}`);
+            setMedicalRecords(medicalRecords.filter(record => record.id !== id));
+        } catch (error) {
+            console.error('Error deleting medical record:', error);
+        }
+    };
+
+    const handleMedicalRecordInputChange = (e) => {
+        const { name, value } = e.target;
+        setNewMedicalRecord({ ...newMedicalRecord, [name]: value });
+    };
+
+
+    
     const [medicalBills, setMedicalBills] = useState([]);
     const [newMedicalBill, setNewMedicalBill] = useState({ date: '', name: '', amount: '' });
 
-    // Medications states
+    const handleAddMedicalBill = async () => {
+        console.log(newMedicalBill);
+        try {
+            const response = await axios.post('http://localhost:5000/api/medical-bills', newMedicalBill);
+            setMedicalBills([...medicalBills, response.data]);
+            setNewMedicalBill({ date: '', name: '', amount: '' });
+        } catch (error) {
+            console.error('Error adding medical bill:', error);
+        }
+    };
+
+    useEffect(() => {
+        const fetchMedicalBills = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/api/medical-bills');
+                setMedicalBills(response.data);
+            } catch (error) {
+                console.error('Error fetching medical bills:', error);
+            }
+        };
+        fetchMedicalBills();
+    }, []);
+
+    const handleDeleteMedicalBill = async (id) => {
+        try {
+            await axios.delete(`http://localhost:5000/api/medical-bills/${id}`);
+            setMedicalBills(medicalBills.filter((bill) => bill.id !== id));
+        } catch (error) {
+            console.error('Error deleting medical bill:', error);
+        }
+    };
+    
+    
+    
+
+    
     const [medications, setMedications] = useState([]);
     const [newMedication, setNewMedication] = useState({ name: '', dosage: '', frequency: '', condition: '' });
 
-    // Reports states
+    
     const [reports, setReports] = useState([]);
     const [file, setFile] = useState(null);
     const [reportName, setReportName] = useState('');
@@ -41,7 +116,7 @@ const NormalPatient = () => {
             { ref: reportsRef, id: 'Reports' },
         ];
 
-        const scrollPosition = window.scrollY;
+    const scrollPosition = window.scrollY;
 
         sections.forEach(({ ref, id }) => {
             if (ref.current) {
@@ -78,92 +153,119 @@ const NormalPatient = () => {
 
 
 
-    // Adding New Medical Record
-    const handleAddMedicalRecord = () => {
-        setMedicalRecords([...medicalRecords, { ...newMedicalRecord, id: medicalRecords.length + 1 }]);
-        setNewMedicalRecord({ date: '', name: '', result: '' });
-    };
+    
+    // const handleAddMedicalRecord = () => {
+    //     setMedicalRecords([...medicalRecords, { ...newMedicalRecord, id: medicalRecords.length + 1 }]);
+    //     setNewMedicalRecord({ date: '', name: '', result: '' });
+    // };
 
-    // Adding New Medical Bill
-    const handleAddMedicalBill = () => {
-        setMedicalBills([...medicalBills, { ...newMedicalBill, id: medicalBills.length + 1 }]);
-        setNewMedicalBill({ date: '', name: '', amount: '' });
-    };
+    
+    // const handleAddMedicalBill = () => {
+    //     setMedicalBills([...medicalBills, { ...newMedicalBill, id: medicalBills.length + 1 }]);
+    //     setNewMedicalBill({ date: '', name: '', amount: '' });
+    // };
 
-    // Adding New Medication
+    
     const handleAddMedication = () => {
         setMedications([...medications, { ...newMedication, id: medications.length + 1 }]);
         setNewMedication({ name: '', dosage: '', frequency: '', condition: '' });
     };
 
-    // Handle form input changes
+    
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setNewAppointment({ ...newAppointment, [name]: value });
     };
 
-    // Medical Records input change
-    const handleMedicalRecordInputChange = (e) => {
-        const { name, value } = e.target;
-        setNewMedicalRecord({ ...newMedicalRecord, [name]: value });
-    };
+    
+    // const handleMedicalRecordInputChange = (e) => {
+    //     const { name, value } = e.target;
+    //     setNewMedicalRecord({ ...newMedicalRecord, [name]: value });
+    // };
 
-    // Medical Bills input change
+    
     const handleMedicalBillInputChange = (e) => {
         const { name, value } = e.target;
         setNewMedicalBill({ ...newMedicalBill, [name]: value });
     };
 
-    // Medications input change
+    
     const handleMedicationInputChange = (e) => {
         const { name, value } = e.target;
         setNewMedication({ ...newMedication, [name]: value });
     };
 
-        // Effect to add scroll event listener
+        
         useEffect(() => {
             window.addEventListener('scroll', handleScroll);
             return () => {
                 window.removeEventListener('scroll', handleScroll);
             };
         }, []);
+
+        // const fetchAppointments = async () => {
+        //     try {
+        //         const response = await axios.get('http://localhost:5000/api/appointments'); // Correct port
+        //         setAppointments(response.data);
+        //     } catch (err) {
+        //         console.error('Error fetching appointments:', err);
+        //     }
+        // };
     
-        const handleAddAppointment = () => {
-            setAppointments([
-                ...appointments,
-                { id: appointments.length + 1, name: newAppointment.name, time: newAppointment.time, status: 'Pending' },
-            ]);
-            setNewAppointment({ name: '', time: '' });
+        const handleAddAppointment = async () => {
+            try {
+                const response = await axios.post('http://localhost:5000/api/appointments', newAppointment); // Correct port
+                setAppointments([...appointments, response.data]);
+                setNewAppointment({ name: '', time: '' });
+            } catch (err) {
+                console.error('Error adding appointment:', err);
+            }
         };
     
-        const handlePostponeAppointment = (id) => {
-            const appointment = appointments.find((app) => app.id === id);
-            setAppointments(appointments.filter((app) => app.id !== id));
-            setPostponedAppointments([...postponedAppointments, { ...appointment, status: 'Postponed' }]);
+        const handlePostponeAppointment = async (id) => {
+            try {
+                const response = await axios.patch(`http://localhost:5000/api/appointments/postpone/${id}`);
+                setAppointments(appointments.filter(app => app.id !== id)); // Remove from current appointments
+                setPostponedAppointments([...postponedAppointments, response.data]); // Add to postponed appointments
+            } catch (err) {
+                console.error('Error postponing appointment:', err);
+            }
         };
+        
     
-        const handleCompleteAppointment = (id) => {
-            const appointment = appointments.find((app) => app.id === id);
-            setAppointments(appointments.filter((app) => app.id !== id));
-            setCompletedAppointments([...completedAppointments, { ...appointment, status: 'Completed' }]);
+        const handleCompleteAppointment = async (id) => {
+            try {
+                const response = await axios.patch(`http://localhost:5000/api/appointments/complete/${id}`);
+                setAppointments(appointments.filter(app => app.id !== id)); // Remove from current appointments
+                setCompletedAppointments([...completedAppointments, response.data]); // Add to completed appointments
+            } catch (err) {
+                console.error('Error completing appointment:', err);
+            }
         };
+        
     
-        // Function to delete a completed appointment
-        const handleDeleteCompletedAppointment = (id) => {
-            setCompletedAppointments(completedAppointments.filter((app) => app.id !== id));
+        
+        const handleDeleteCompletedAppointment = async (id) => {
+            try {
+                await axios.delete(`http://localhost:5000/api/appointments/${id}`);
+                setCompletedAppointments(completedAppointments.filter(app => app.id !== id)); // Remove from completed appointments
+            } catch (err) {
+                console.error('Error deleting appointment:', err);
+            }
         };
+        
     
-        // Function to move a postponed appointment back to upcoming
+        
         const handleMoveUpPostponedAppointment = (id) => {
             const appointment = postponedAppointments.find((app) => app.id === id);
             setPostponedAppointments(postponedAppointments.filter((app) => app.id !== id));
             setAppointments([...appointments, { ...appointment, status: 'Pending' }]);
         };
     
-        // const handleInputChange = (e) => {
-        //     const { name, value } = e.target;
-        //     setNewAppointment({ ...newAppointment, [name]: value });
-        // };
+        
+        
+        
+        
 
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('Appointments');
@@ -355,21 +457,44 @@ const NormalPatient = () => {
                 </section>
                 {/* Medical Records Section */}
                 <section style={styles.schedulerSection} ref={medicalrecordsRef}>
-                    <h2>Medical Records</h2>
-                    <div>
-                        <input type="date" name="date" value={newMedicalRecord.date} onChange={handleMedicalRecordInputChange} style={styles.input} placeholder="Date" />
-                        <input type="text" name="name" value={newMedicalRecord.name} onChange={handleMedicalRecordInputChange} style={styles.input} placeholder="Name" />
-                        <input type="text" name="result" value={newMedicalRecord.result} onChange={handleMedicalRecordInputChange} style={styles.input} placeholder="Result" />
-                        <button onClick={handleAddMedicalRecord} style={styles.button}>Add Record</button>
-                    </div>
-                    <ul>
-                        {medicalRecords.map(record => (
-                            <li key={record.id} style={styles.appointmentItem}>
-                                {record.date} - {record.name} - {record.result}
-                            </li>
-                        ))}
-                    </ul>
-                </section>
+            <h3>Add New Medical Record</h3>
+            <div className="input-group">
+                <input
+                    type="date"
+                    name="date"
+                    value={newMedicalRecord.date}
+                    onChange={handleMedicalRecordInputChange}
+                    style={styles.input}
+                />
+                <input
+                    type="text"
+                    name="name"
+                    placeholder="Record Name"
+                    value={newMedicalRecord.name}
+                    onChange={handleMedicalRecordInputChange}
+                    style={styles.input}
+                />
+                <input
+                    type="text"
+                    name="result"
+                    placeholder="Result"
+                    value={newMedicalRecord.result}
+                    onChange={handleMedicalRecordInputChange}
+                    style={styles.input}
+                />
+                <button onClick={handleAddMedicalRecord} style={styles.button}>Add Record</button>
+            </div>
+
+            <h3>Records List</h3>
+            <ul className="medical-record-list">
+                {medicalRecords.map(record => (
+                    <li key={record.id} className="medical-record-item">
+                        <span>{record.date} - {record.name}: {record.result}</span>
+                        <button onClick={() => handleDeleteMedicalRecord(record.id)} style={styles.button}>Delete</button>
+                    </li>
+                ))}
+            </ul>
+        </section>
 
                 {/* Medical Bills Section */}
                 <section style={styles.schedulerSection} ref={medicalbillsRef}>
@@ -383,10 +508,18 @@ const NormalPatient = () => {
                     <ul>
                         {medicalBills.map(bill => (
                             <li key={bill.id} style={styles.appointmentItem}>
-                                {bill.date} - {bill.name} - ${bill.amount}
+                                {bill.date} - {bill.name} - ₹{bill.amount}
                             </li>
                         ))}
                     </ul>
+                    <ul className="medical-record-list">
+                {medicalRecords.map(record => (
+                    <li key={record.id} className="medical-record-item">
+                        <span>{record.date} - {record.name}: {record.result}</span>
+                        <button onClick={() => handleDeleteMedicalBill(record.id)} style={styles.button}>Delete</button>
+                    </li>
+                ))}
+            </ul>
                 </section>
 
                 {/* Medications Section */}
@@ -598,23 +731,8 @@ const styles = {
         backgroundColor: '#f8f9fa',
         borderRadius: '5px',
     },
-    input: {
-        margin: '5px 0',
-        padding: '10px',
-        width: 'calc(100% - 22px)',
-        border: '1px solid #ccc',
-        borderRadius: '5px',
-    },
     fileInput: {
         margin: '5px 0',
-    },
-    button: {
-        padding: '10px',
-        backgroundColor: '#007bff',
-        color: '#fff',
-        border: 'none',
-        borderRadius: '5px',
-        cursor: 'pointer',
     },
     reportList: {
         marginTop: '15px',
@@ -642,6 +760,41 @@ const styles = {
         cursor: 'pointer',
         marginLeft: '25px'
     },
+    // New styles for medical records
+    medicalRecordsContainer: {
+        padding: '20px',
+        backgroundColor: '#f9f9f9',
+        borderRadius: '8px',
+        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+        marginBottom: '20px',
+    },
+    medicalRecordList: {
+        listStyle: 'none',
+        padding: '0',
+    },
+    medicalRecordItem: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '10px',
+        borderBottom: '1px solid #ddd',
+    },
+    medicalRecordInput: {
+        marginRight: '10px',
+        padding: '8px',
+        borderRadius: '4px',
+        border: '1px solid #ccc',
+        width: 'calc(100% - 22px)', // Adjust width for padding
+    },
+    addButton: {
+        padding: '10px',
+        backgroundColor: '#007bff',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '5px',
+        cursor: 'pointer',
+    },
 };
+
 
 export default NormalPatient;
