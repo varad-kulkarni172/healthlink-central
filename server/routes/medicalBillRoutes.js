@@ -1,9 +1,9 @@
-// routes/medicalRecordBills.js
+
 const express = require('express');
-const { MedicalBill } = require('../models/MedicalBill'); // Assuming you've created a model for MedicalRecord
+const { MedicalBill } = require('../models/MedicalBill'); 
 const router = express.Router();
 
-// Fetch all medical bills
+
 router.get('/', async (req, res) => {
     try {
         const medicalBills = await MedicalBill.findAll();
@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// Add a new medical bills
+
 router.post('/', async (req, res) => {
     const { date, name, amount } = req.body;
     try {
@@ -24,7 +24,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-// Delete a medical bill
+
 router.delete('/:id', async (req, res) => {
     const { id } = req.params;
     try {

@@ -6,18 +6,18 @@ import { FaArrowUp } from 'react-icons/fa';
 import logo from '../images/logo.png';
 
 const NormalPatient = () => {
-    
+
     const [appointments, setAppointments] = useState([]);
     const [newAppointment, setNewAppointment] = useState({ name: '', time: '' });
     const [postponedAppointments, setPostponedAppointments] = useState([]);
     const [completedAppointments, setCompletedAppointments] = useState([]);
 
     useEffect(() => {
-        axios.get('/api/appointments')
+        axios.get('http://localhost:5000/api/appointments')
             .then(response => setAppointments(response.data))
             .catch(error => console.error('Error fetching appointments:', error));
     }, []);
-    
+
     const [medicalRecords, setMedicalRecords] = useState([]);
     const [newMedicalRecord, setNewMedicalRecord] = useState({ date: '', name: '', result: '' });
 
@@ -59,7 +59,7 @@ const NormalPatient = () => {
     };
 
 
-    
+
     const [medicalBills, setMedicalBills] = useState([]);
     const [newMedicalBill, setNewMedicalBill] = useState({ date: '', name: '', amount: '' });
 
@@ -86,6 +86,30 @@ const NormalPatient = () => {
         fetchMedicalBills();
     }, []);
 
+    useEffect(() => {
+        const fetchMedications = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/api/medications');
+                setMedications(response.data);
+            } catch (error) {
+                console.error('Error fetching medications:', error);
+            }
+        };
+        fetchMedications();
+    }, []);
+
+    useEffect(() => {
+        const fetchReports = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/api/reports');
+                setReports(response.data);
+            } catch (error) {
+                console.error('Error fetching Reports:', error);
+            }
+        };
+        fetchReports();
+    }, []);
+
     const handleDeleteMedicalBill = async (id) => {
         try {
             await axios.delete(`http://localhost:5000/api/medical-bills/${id}`);
@@ -94,15 +118,11 @@ const NormalPatient = () => {
             console.error('Error deleting medical bill:', error);
         }
     };
-    
-    
-    
 
-    
     const [medications, setMedications] = useState([]);
     const [newMedication, setNewMedication] = useState({ name: '', dosage: '', frequency: '', condition: '' });
 
-    
+
     const [reports, setReports] = useState([]);
     const [file, setFile] = useState(null);
     const [reportName, setReportName] = useState('');
@@ -116,7 +136,7 @@ const NormalPatient = () => {
             { ref: reportsRef, id: 'Reports' },
         ];
 
-    const scrollPosition = window.scrollY;
+        const scrollPosition = window.scrollY;
 
         sections.forEach(({ ref, id }) => {
             if (ref.current) {
@@ -130,142 +150,145 @@ const NormalPatient = () => {
         });
     };
 
-    const handleUploadReport = (e) => {
+    const handleUploadReport = async (e) => {
         e.preventDefault();
         if (file && reportName) {
-            const newReport = {
-                id: reports.length + 1,
-                name: reportName,
-                file: URL.createObjectURL(file),
-            };
-            setReports((prev) => [...prev, newReport]);
-            setReportName('');
-            setFile(null);
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('name', reportName);
+
+            const token = localStorage.getItem('token'); // Retrieve the token
+
+            try {
+                const response = await axios.post('http://localhost:5000/api/reports', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                        'Authorization': `Bearer ${token}`, // Include the token
+                    },
+                });
+                setReports((prev) => [...prev, response.data]);
+                setReportName('');
+                setFile(null);
+            } catch (error) {
+                console.error('Error uploading report:', error);
+                alert('Error uploading report: ' + error.response?.data?.error || error.message);
+            }
         } else {
             alert("Please select a file and provide a report name.");
         }
     };
 
-    const handleDeleteReport = (id) => {
-        const updatedReports = reports.filter(report => report.id !== id);
-        setReports(updatedReports);
+
+    const handleDeleteReport = async (id) => {
+
+        const token = localStorage.getItem('token'); // Retrieve the token
+
+        try {
+            await axios.delete(`http://localhost:5000/api/reports/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`, // Make sure to include the token if needed
+                },
+            });
+            // Update the state to remove the deleted report
+            const updatedReports = reports.filter(report => report.id !== id);
+            setReports(updatedReports);
+        } catch (error) {
+            console.error('Error deleting report:', error);
+        }
+    };
+    
+
+
+    const handleAddMedication = async () => {
+        try {
+            const response = await axios.post('http://localhost:5000/api/medications', newMedication);
+            setMedications([...medications, response.data]);
+            setNewMedication({ name: '', dosage: '', frequency: '', condition: '' });
+        } catch (error) {
+            console.error('Error adding medication:', error.response ? error.response.data : error.message);
+        }
     };
 
-
-
-    
-    // const handleAddMedicalRecord = () => {
-    //     setMedicalRecords([...medicalRecords, { ...newMedicalRecord, id: medicalRecords.length + 1 }]);
-    //     setNewMedicalRecord({ date: '', name: '', result: '' });
-    // };
-
-    
-    // const handleAddMedicalBill = () => {
-    //     setMedicalBills([...medicalBills, { ...newMedicalBill, id: medicalBills.length + 1 }]);
-    //     setNewMedicalBill({ date: '', name: '', amount: '' });
-    // };
-
-    
-    const handleAddMedication = () => {
-        setMedications([...medications, { ...newMedication, id: medications.length + 1 }]);
-        setNewMedication({ name: '', dosage: '', frequency: '', condition: '' });
+    const handleDeleteMedication = async (id) => {
+        try {
+            await axios.delete(`http://localhost:5000/api/medications/${id}`);
+            setMedications(medications.filter(medication => medication.id !== id));
+        } catch (error) {
+            console.error('Error deleting medication:', error.response ? error.response.data : error.message);
+        }
     };
 
-    
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setNewAppointment({ ...newAppointment, [name]: value });
-    };
-
-    
-    // const handleMedicalRecordInputChange = (e) => {
-    //     const { name, value } = e.target;
-    //     setNewMedicalRecord({ ...newMedicalRecord, [name]: value });
-    // };
-
-    
-    const handleMedicalBillInputChange = (e) => {
-        const { name, value } = e.target;
-        setNewMedicalBill({ ...newMedicalBill, [name]: value });
-    };
-
-    
     const handleMedicationInputChange = (e) => {
         const { name, value } = e.target;
         setNewMedication({ ...newMedication, [name]: value });
     };
 
-        
-        useEffect(() => {
-            window.addEventListener('scroll', handleScroll);
-            return () => {
-                window.removeEventListener('scroll', handleScroll);
-            };
-        }, []);
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setNewAppointment({ ...newAppointment, [name]: value });
+    };
 
-        // const fetchAppointments = async () => {
-        //     try {
-        //         const response = await axios.get('http://localhost:5000/api/appointments'); // Correct port
-        //         setAppointments(response.data);
-        //     } catch (err) {
-        //         console.error('Error fetching appointments:', err);
-        //     }
-        // };
-    
-        const handleAddAppointment = async () => {
-            try {
-                const response = await axios.post('http://localhost:5000/api/appointments', newAppointment); // Correct port
-                setAppointments([...appointments, response.data]);
-                setNewAppointment({ name: '', time: '' });
-            } catch (err) {
-                console.error('Error adding appointment:', err);
-            }
+    const handleMedicalBillInputChange = (e) => {
+        const { name, value } = e.target;
+        setNewMedicalBill({ ...newMedicalBill, [name]: value });
+    };
+
+    useEffect(() => {
+        window.addEventListener('scroll', handleScroll);
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
         };
-    
-        const handlePostponeAppointment = async (id) => {
-            try {
-                const response = await axios.patch(`http://localhost:5000/api/appointments/postpone/${id}`);
-                setAppointments(appointments.filter(app => app.id !== id)); // Remove from current appointments
-                setPostponedAppointments([...postponedAppointments, response.data]); // Add to postponed appointments
-            } catch (err) {
-                console.error('Error postponing appointment:', err);
-            }
-        };
-        
-    
-        const handleCompleteAppointment = async (id) => {
-            try {
-                const response = await axios.patch(`http://localhost:5000/api/appointments/complete/${id}`);
-                setAppointments(appointments.filter(app => app.id !== id)); // Remove from current appointments
-                setCompletedAppointments([...completedAppointments, response.data]); // Add to completed appointments
-            } catch (err) {
-                console.error('Error completing appointment:', err);
-            }
-        };
-        
-    
-        
-        const handleDeleteCompletedAppointment = async (id) => {
-            try {
-                await axios.delete(`http://localhost:5000/api/appointments/${id}`);
-                setCompletedAppointments(completedAppointments.filter(app => app.id !== id)); // Remove from completed appointments
-            } catch (err) {
-                console.error('Error deleting appointment:', err);
-            }
-        };
-        
-    
-        
-        const handleMoveUpPostponedAppointment = (id) => {
-            const appointment = postponedAppointments.find((app) => app.id === id);
-            setPostponedAppointments(postponedAppointments.filter((app) => app.id !== id));
-            setAppointments([...appointments, { ...appointment, status: 'Pending' }]);
-        };
-    
-        
-        
-        
-        
+    }, []);
+
+    const handleAddAppointment = async () => {
+        try {
+            const response = await axios.post('http://localhost:5000/api/appointments', newAppointment);
+            setAppointments([...appointments, response.data]);
+            setNewAppointment({ name: '', time: '' });
+        } catch (err) {
+            console.error('Error adding appointment:', err);
+        }
+    };
+
+    const handlePostponeAppointment = async (id) => {
+        try {
+            const response = await axios.patch(`http://localhost:5000/api/appointments/postpone/${id}`);
+            setAppointments(appointments.filter(app => app.id !== id));
+            setPostponedAppointments([...postponedAppointments, response.data]);
+        } catch (err) {
+            console.error('Error postponing appointment:', err);
+        }
+    };
+
+
+    const handleCompleteAppointment = async (id) => {
+        try {
+            const response = await axios.patch(`http://localhost:5000/api/appointments/complete/${id}`);
+            setAppointments(appointments.filter(app => app.id !== id));
+            setCompletedAppointments([...completedAppointments, response.data]);
+        } catch (err) {
+            console.error('Error completing appointment:', err);
+        }
+    };
+
+
+
+    const handleDeleteCompletedAppointment = async (id) => {
+        try {
+            await axios.delete(`http://localhost:5000/api/appointments/${id}`);
+            setCompletedAppointments(completedAppointments.filter(app => app.id !== id));
+        } catch (err) {
+            console.error('Error deleting appointment:', err);
+        }
+    };
+
+
+
+    const handleMoveUpPostponedAppointment = (id) => {
+        const appointment = postponedAppointments.find((app) => app.id === id);
+        setPostponedAppointments(postponedAppointments.filter((app) => app.id !== id));
+        setAppointments([...appointments, { ...appointment, status: 'Pending' }]);
+    };
 
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('Appointments');
@@ -383,9 +406,8 @@ const NormalPatient = () => {
             </nav>
 
             <main style={styles.mainContent}>
-            <section style={styles.schedulerSection} ref={appointmentsRef}>
+                <section style={styles.schedulerSection} ref={appointmentsRef}>
                     <h2>Scheduler</h2>
-                    {/* Add new appointment */}
                     <div>
                         <h3>Add New Appointment</h3>
                         <input
@@ -407,7 +429,6 @@ const NormalPatient = () => {
                         <button onClick={handleAddAppointment} style={styles.button}>Add Appointment</button>
                     </div>
 
-                    {/* Upcoming appointments */}
                     <div>
                         <h3>Upcoming Appointments</h3>
                         <ul>
@@ -424,8 +445,6 @@ const NormalPatient = () => {
                             ))}
                         </ul>
                     </div>
-
-                    {/* Completed appointments */}
                     <div>
                         <h3>Completed Appointments</h3>
                         <ul>
@@ -440,7 +459,6 @@ const NormalPatient = () => {
                         </ul>
                     </div>
 
-                    {/* Postponed appointments */}
                     <div>
                         <h3>Postponed Appointments</h3>
                         <ul>
@@ -455,48 +473,45 @@ const NormalPatient = () => {
                         </ul>
                     </div>
                 </section>
-                {/* Medical Records Section */}
                 <section style={styles.schedulerSection} ref={medicalrecordsRef}>
-            <h3>Add New Medical Record</h3>
-            <div className="input-group">
-                <input
-                    type="date"
-                    name="date"
-                    value={newMedicalRecord.date}
-                    onChange={handleMedicalRecordInputChange}
-                    style={styles.input}
-                />
-                <input
-                    type="text"
-                    name="name"
-                    placeholder="Record Name"
-                    value={newMedicalRecord.name}
-                    onChange={handleMedicalRecordInputChange}
-                    style={styles.input}
-                />
-                <input
-                    type="text"
-                    name="result"
-                    placeholder="Result"
-                    value={newMedicalRecord.result}
-                    onChange={handleMedicalRecordInputChange}
-                    style={styles.input}
-                />
-                <button onClick={handleAddMedicalRecord} style={styles.button}>Add Record</button>
-            </div>
+                    <h3>Add New Medical Record</h3>
+                    <div className="input-group">
+                        <input
+                            type="date"
+                            name="date"
+                            value={newMedicalRecord.date}
+                            onChange={handleMedicalRecordInputChange}
+                            style={styles.input}
+                        />
+                        <input
+                            type="text"
+                            name="name"
+                            placeholder="Record Name"
+                            value={newMedicalRecord.name}
+                            onChange={handleMedicalRecordInputChange}
+                            style={styles.input}
+                        />
+                        <input
+                            type="text"
+                            name="result"
+                            placeholder="Result"
+                            value={newMedicalRecord.result}
+                            onChange={handleMedicalRecordInputChange}
+                            style={styles.input}
+                        />
+                        <button onClick={handleAddMedicalRecord} style={styles.button}>Add Record</button>
+                    </div>
 
-            <h3>Records List</h3>
-            <ul className="medical-record-list">
-                {medicalRecords.map(record => (
-                    <li key={record.id} className="medical-record-item">
-                        <span>{record.date} - {record.name}: {record.result}</span>
-                        <button onClick={() => handleDeleteMedicalRecord(record.id)} style={styles.button}>Delete</button>
-                    </li>
-                ))}
-            </ul>
-        </section>
-
-                {/* Medical Bills Section */}
+                    <h3>Records List</h3>
+                    <ul className="medical-record-list">
+                        {medicalRecords.map(record => (
+                            <li key={record.id} className="medical-record-item">
+                                <span>{record.date} - {record.name}: {record.result}</span>
+                                <button onClick={() => handleDeleteMedicalRecord(record.id)} style={styles.button}>Delete</button>
+                            </li>
+                        ))}
+                    </ul>
+                </section>
                 <section style={styles.schedulerSection} ref={medicalbillsRef}>
                     <h2>Medical Bills</h2>
                     <div>
@@ -505,24 +520,16 @@ const NormalPatient = () => {
                         <input type="text" name="amount" value={newMedicalBill.amount} onChange={handleMedicalBillInputChange} style={styles.input} placeholder="Amount" />
                         <button onClick={handleAddMedicalBill} style={styles.button}>Add Bill</button>
                     </div>
-                    <ul>
+                    <ul className="medical-bill-list">
                         {medicalBills.map(bill => (
                             <li key={bill.id} style={styles.appointmentItem}>
                                 {bill.date} - {bill.name} - ₹{bill.amount}
+                                <button onClick={() => handleDeleteMedicalBill(bill.id)} style={styles.button}>Delete</button>
                             </li>
                         ))}
                     </ul>
-                    <ul className="medical-record-list">
-                {medicalRecords.map(record => (
-                    <li key={record.id} className="medical-record-item">
-                        <span>{record.date} - {record.name}: {record.result}</span>
-                        <button onClick={() => handleDeleteMedicalBill(record.id)} style={styles.button}>Delete</button>
-                    </li>
-                ))}
-            </ul>
                 </section>
 
-                {/* Medications Section */}
                 <section style={styles.schedulerSection} ref={medicationsRef}>
                     <h2>Medications</h2>
                     <div>
@@ -532,16 +539,16 @@ const NormalPatient = () => {
                         <input type="text" name="condition" value={newMedication.condition} onChange={handleMedicationInputChange} style={styles.input} placeholder="Condition" />
                         <button onClick={handleAddMedication} style={styles.button}>Add Medication</button>
                     </div>
-                    <ul>
+                    <ul className="medication-list">
                         {medications.map(medication => (
                             <li key={medication.id} style={styles.appointmentItem}>
                                 {medication.name} - {medication.dosage} - {medication.frequency} - For {medication.condition}
+                                <button onClick={() => handleDeleteMedication(medication.id)} style={styles.button}>Delete</button>
                             </li>
                         ))}
                     </ul>
                 </section>
 
-                {/* Reports Section */}
                 <section ref={reportsRef} style={styles.schedulerSection}>
                     <h2>Reports</h2>
                     <div style={styles.uploadSection}>
@@ -572,9 +579,15 @@ const NormalPatient = () => {
                                     <li key={report.id} style={styles.reportItem}>
                                         <span>{report.name}</span>
                                         <div style={styles.reportActions}>
-                                            <a href={report.file} target="_blank" rel="noopener noreferrer" style={styles.downloadLink}>
+                                            <a
+                                                href={`http://localhost:5000/${report.filePath}`} // Adjust this to point correctly
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={styles.downloadLink}
+                                            >
                                                 View
                                             </a>
+
                                             <button onClick={() => handleDeleteReport(report.id)} style={styles.deleteButton}>
                                                 Delete
                                             </button>
@@ -666,7 +679,6 @@ const styles = {
     inputFocus: {
         borderColor: '#0d47a1',
     },
-
     buttonHover: {
         backgroundColor: '#063373',
     },
@@ -747,6 +759,7 @@ const styles = {
     downloadLink: {
         color: '#007bff',
         textDecoration: 'none',
+        cursor: 'pointer',
     },
     section: {
         marginTop: '20px',
@@ -758,9 +771,8 @@ const styles = {
         border: 'none',
         borderRadius: '5px',
         cursor: 'pointer',
-        marginLeft: '25px'
+        marginLeft: '25px',
     },
-    // New styles for medical records
     medicalRecordsContainer: {
         padding: '20px',
         backgroundColor: '#f9f9f9',
@@ -784,7 +796,7 @@ const styles = {
         padding: '8px',
         borderRadius: '4px',
         border: '1px solid #ccc',
-        width: 'calc(100% - 22px)', // Adjust width for padding
+        width: 'calc(100% - 22px)',
     },
     addButton: {
         padding: '10px',
@@ -793,6 +805,110 @@ const styles = {
         border: 'none',
         borderRadius: '5px',
         cursor: 'pointer',
+    },
+    medicalBillsContainer: {
+        padding: '20px',
+        backgroundColor: '#f9f9f9',
+        borderRadius: '8px',
+        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+        marginBottom: '20px',
+    },
+    medicalBillList: {
+        listStyle: 'none',
+        padding: '0',
+    },
+    medicalBillItem: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '10px',
+        borderBottom: '1px solid #ddd',
+    },
+    medicalBIllInput: {
+        marginRight: '10px',
+        padding: '8px',
+        borderRadius: '4px',
+        border: '1px solid #ccc',
+        width: 'calc(100% - 22px)',
+    },
+
+    // Responsive design
+    '@media (max-width: 768px)': {
+        dashboardContainer: {
+            flexDirection: 'column',
+        },
+        sidebar: {
+            width: '100%',
+            padding: '10px',
+            textAlign: 'center',
+        },
+        mainContent: {
+            padding: '20px',
+        },
+        logo: {
+            margin: '0 auto',
+        },
+        navItem: {
+            justifyContent: 'center',
+        },
+        formContainer: {
+            flexDirection: 'column',
+        },
+        button: {
+            width: '100%',
+            margin: '10px 0',
+        },
+        appointmentCard: {
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+        },
+    },
+    '@media (max-width: 480px)': {
+        dashboardContainer: {
+            height: 'auto',
+        },
+        sidebar: {
+            padding: '5px',
+        },
+        mainContent: {
+            padding: '10px',
+        },
+        logo: {
+            width: '80px',
+            marginBottom: '10px',
+        },
+        navItem: {
+            padding: '8px',
+        },
+        formContainer: {
+            flexDirection: 'column',
+        },
+        input: {
+            width: '100%',
+            marginBottom: '10px',
+        },
+        button: {
+            width: '100%',
+            marginBottom: '10px',
+        },
+        reportItem: {
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+        },
+        deleteButton: {
+            width: '100%',
+            margin: '10px 0 0 0',
+        },
+        uploadSection: {
+            padding: '10px',
+        },
+        medicalRecordInput: {
+            width: '100%',
+            marginBottom: '10px',
+        },
+        addButton: {
+            width: '100%',
+        },
     },
 };
 
