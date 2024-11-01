@@ -1,0 +1,28 @@
+[
+    {
+      "name": "Aspirin",
+      "price": 5.99,
+      "image": "https://via.placeholder.com/150?text=Aspirin"
+    },
+    {
+      "name": "Ibuprofen",
+      "price": 8.49,
+      "image": "https://via.placeholder.com/150?text=Ibuprofen"
+    },
+    {
+      "name": "Paracetamol",
+      "price": 3.99,
+      "image": "https://via.placeholder.com/150?text=Paracetamol"
+    },
+    {
+      "name": "Amoxicillin",
+      "price": 12.99,
+      "image": "https://via.placeholder.com/150?text=Amoxicillin"
+    },
+    {
+      "name": "Lisinopril",
+      "price": 14.99,
+      "image": "https://via.placeholder.com/150?text=Lisinopril"
+    }
+  ]
+  

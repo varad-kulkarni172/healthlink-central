@@ -13,7 +13,7 @@ const NormalPatient = () => {
     const [completedAppointments, setCompletedAppointments] = useState([]);
 
     useEffect(() => {
-        axios.get('http://localhost:5000/api/appointments')
+        axios.get('http://localhost:5001/api/appointments')
             .then(response => setAppointments(response.data))
             .catch(error => console.error('Error fetching appointments:', error));
     }, []);
@@ -24,7 +24,7 @@ const NormalPatient = () => {
     useEffect(() => {
         const fetchMedicalRecords = async () => {
             try {
-                const response = await axios.get('http://localhost:5000/api/medical-records');
+                const response = await axios.get('http://localhost:5001/api/medical-records');
                 setMedicalRecords(response.data);
             } catch (error) {
                 console.error('Error fetching medical records:', error);
@@ -36,7 +36,7 @@ const NormalPatient = () => {
 
     const handleAddMedicalRecord = async () => {
         try {
-            const response = await axios.post('http://localhost:5000/api/medical-records', newMedicalRecord);
+            const response = await axios.post('http://localhost:5001/api/medical-records', newMedicalRecord);
             setMedicalRecords([...medicalRecords, response.data]);
             setNewMedicalRecord({ date: '', name: '', result: '' });
         } catch (error) {
@@ -46,7 +46,7 @@ const NormalPatient = () => {
 
     const handleDeleteMedicalRecord = async (id) => {
         try {
-            await axios.delete(`http://localhost:5000/api/medical-records/${id}`);
+            await axios.delete(`http://localhost:5001/api/medical-records/${id}`);
             setMedicalRecords(medicalRecords.filter(record => record.id !== id));
         } catch (error) {
             console.error('Error deleting medical record:', error);
@@ -66,7 +66,7 @@ const NormalPatient = () => {
     const handleAddMedicalBill = async () => {
         console.log(newMedicalBill);
         try {
-            const response = await axios.post('http://localhost:5000/api/medical-bills', newMedicalBill);
+            const response = await axios.post('http://localhost:5001/api/medical-bills', newMedicalBill);
             setMedicalBills([...medicalBills, response.data]);
             setNewMedicalBill({ date: '', name: '', amount: '' });
         } catch (error) {
@@ -77,7 +77,7 @@ const NormalPatient = () => {
     useEffect(() => {
         const fetchMedicalBills = async () => {
             try {
-                const response = await axios.get('http://localhost:5000/api/medical-bills');
+                const response = await axios.get('http://localhost:5001/api/medical-bills');
                 setMedicalBills(response.data);
             } catch (error) {
                 console.error('Error fetching medical bills:', error);
@@ -89,7 +89,7 @@ const NormalPatient = () => {
     useEffect(() => {
         const fetchMedications = async () => {
             try {
-                const response = await axios.get('http://localhost:5000/api/medications');
+                const response = await axios.get('http://localhost:5001/api/medications');
                 setMedications(response.data);
             } catch (error) {
                 console.error('Error fetching medications:', error);
@@ -101,7 +101,7 @@ const NormalPatient = () => {
     useEffect(() => {
         const fetchReports = async () => {
             try {
-                const response = await axios.get('http://localhost:5000/api/reports');
+                const response = await axios.get('http://localhost:5001/api/reports');
                 setReports(response.data);
             } catch (error) {
                 console.error('Error fetching Reports:', error);
@@ -112,7 +112,7 @@ const NormalPatient = () => {
 
     const handleDeleteMedicalBill = async (id) => {
         try {
-            await axios.delete(`http://localhost:5000/api/medical-bills/${id}`);
+            await axios.delete(`http://localhost:5001/api/medical-bills/${id}`);
             setMedicalBills(medicalBills.filter((bill) => bill.id !== id));
         } catch (error) {
             console.error('Error deleting medical bill:', error);
@@ -160,7 +160,7 @@ const NormalPatient = () => {
             const token = localStorage.getItem('token'); // Retrieve the token
 
             try {
-                const response = await axios.post('http://localhost:5000/api/reports', formData, {
+                const response = await axios.post('http://localhost:5001/api/reports', formData, {
                     headers: {
                         'Content-Type': 'multipart/form-data',
                         'Authorization': `Bearer ${token}`, // Include the token
@@ -184,7 +184,7 @@ const NormalPatient = () => {
         const token = localStorage.getItem('token'); // Retrieve the token
 
         try {
-            await axios.delete(`http://localhost:5000/api/reports/${id}`, {
+            await axios.delete(`http://localhost:5001/api/reports/${id}`, {
                 headers: {
                     Authorization: `Bearer ${token}`, // Make sure to include the token if needed
                 },
@@ -201,7 +201,7 @@ const NormalPatient = () => {
 
     const handleAddMedication = async () => {
         try {
-            const response = await axios.post('http://localhost:5000/api/medications', newMedication);
+            const response = await axios.post('http://localhost:5001/api/medications', newMedication);
             setMedications([...medications, response.data]);
             setNewMedication({ name: '', dosage: '', frequency: '', condition: '' });
         } catch (error) {
@@ -211,12 +211,20 @@ const NormalPatient = () => {
 
     const handleDeleteMedication = async (id) => {
         try {
-            await axios.delete(`http://localhost:5000/api/medications/${id}`);
-            setMedications(medications.filter(medication => medication.id !== id));
+            console.log('Attempting to delete medication with ID:', id);
+            const response = await axios.delete(`http://localhost:5001/api/medications/${id}`);
+            console.log('Delete response status:', response.status);
+            
+            // Update the medications state after successful deletion
+            setMedications(prevMedications => prevMedications.filter(medication => medication.id !== id));
         } catch (error) {
+            // Log error details
             console.error('Error deleting medication:', error.response ? error.response.data : error.message);
+            console.error('Full error object:', error);
         }
     };
+    
+    
 
     const handleMedicationInputChange = (e) => {
         const { name, value } = e.target;
@@ -242,7 +250,7 @@ const NormalPatient = () => {
 
     const handleAddAppointment = async () => {
         try {
-            const response = await axios.post('http://localhost:5000/api/appointments', newAppointment);
+            const response = await axios.post('http://localhost:5001/api/appointments', newAppointment);
             setAppointments([...appointments, response.data]);
             setNewAppointment({ name: '', time: '' });
         } catch (err) {
@@ -252,7 +260,7 @@ const NormalPatient = () => {
 
     const handlePostponeAppointment = async (id) => {
         try {
-            const response = await axios.patch(`http://localhost:5000/api/appointments/postpone/${id}`);
+            const response = await axios.patch(`http://localhost:5001/api/appointments/postpone/${id}`);
             setAppointments(appointments.filter(app => app.id !== id));
             setPostponedAppointments([...postponedAppointments, response.data]);
         } catch (err) {
@@ -263,7 +271,7 @@ const NormalPatient = () => {
 
     const handleCompleteAppointment = async (id) => {
         try {
-            const response = await axios.patch(`http://localhost:5000/api/appointments/complete/${id}`);
+            const response = await axios.patch(`http://localhost:5001/api/appointments/complete/${id}`);
             setAppointments(appointments.filter(app => app.id !== id));
             setCompletedAppointments([...completedAppointments, response.data]);
         } catch (err) {
@@ -275,7 +283,7 @@ const NormalPatient = () => {
 
     const handleDeleteCompletedAppointment = async (id) => {
         try {
-            await axios.delete(`http://localhost:5000/api/appointments/${id}`);
+            await axios.delete(`http://localhost:5001/api/appointments/${id}`);
             setCompletedAppointments(completedAppointments.filter(app => app.id !== id));
         } catch (err) {
             console.error('Error deleting appointment:', err);
@@ -580,7 +588,7 @@ const NormalPatient = () => {
                                         <span>{report.name}</span>
                                         <div style={styles.reportActions}>
                                             <a
-                                                href={`http://localhost:5000/${report.filePath}`} // Adjust this to point correctly
+                                                href={`http://localhost:5001/${report.filePath}`} // Adjust this to point correctly
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 style={styles.downloadLink}

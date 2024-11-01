@@ -1,21 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bar, Pie } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
+import axios from 'axios';
+import { Line } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
 import { FiLogOut } from 'react-icons/fi';
 import { FaArrowUp } from 'react-icons/fa';
 import logo from '../images/logo.png';
+import io from 'socket.io-client';
 
+const socket = io('http://localhost:5001');
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+
 
 const Dashboard = () => {
 
-    const [appointments, setAppointments] = useState([
-        { id: 1, name: 'John Doe', time: '10:00 AM', status: 'Pending' },
-        { id: 2, name: 'Jane Smith', time: '11:30 AM', status: 'Pending' },
-    ]);
-
+    const [appointments, setAppointments] = useState([]);
     const [newAppointment, setNewAppointment] = useState({ name: '', time: '' });
     const [postponedAppointments, setPostponedAppointments] = useState([]);
     const [completedAppointments, setCompletedAppointments] = useState([]);
@@ -45,25 +45,68 @@ const Dashboard = () => {
         });
     };
 
-    const handleUploadReport = (e) => {
+    useEffect(() => {
+        axios.get('http://localhost:5001/api/dashboard_appointments')
+            .then(response => setAppointments(response.data))
+            .catch(error => console.error('Error fetching appointments:', error));
+    }, []);
+
+    useEffect(() => {
+        const fetchReports = async () => {
+            try {
+                const response = await axios.get('http://localhost:5001/api/dashboard_reports');
+                setReports(response.data);
+            } catch (error) {
+                console.error('Error fetching Dashboard Reports:', error);
+            }
+        };
+        fetchReports();
+    }, []);
+
+    const handleUploadReport = async (e) => {
         e.preventDefault();
         if (file && reportName) {
-            const newReport = {
-                id: reports.length + 1,
-                name: reportName,
-                file: URL.createObjectURL(file),
-            };
-            setReports((prev) => [...prev, newReport]);
-            setReportName('');
-            setFile(null);
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('name', reportName);
+    
+            const token = localStorage.getItem('token');
+    
+            try {
+                const response = await axios.post('http://localhost:5001/api/dashboard_reports', formData, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                });
+                setReports((prev) => [...prev, response.data]);
+                setReportName('');
+                setFile(null);
+            } catch (error) {
+                console.error('Error uploading report:', error);
+                alert('Error uploading report: ' + error.response?.data?.error || error.message);
+            }
         } else {
             alert("Please select a file and provide a report name.");
         }
     };
+    
 
-    const handleDeleteReport = (id) => {
-        const updatedReports = reports.filter(report => report.id !== id);
-        setReports(updatedReports);
+    const handleDeleteReport = async (id) => {
+
+        const token = localStorage.getItem('token'); // Retrieve the token
+
+        try {
+            await axios.delete(`http://localhost:5001/api/dashboard_reports/${id}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`, // Make sure to include the token if needed
+                },
+            });
+            // Update the state to remove the deleted report
+            const updatedReports = reports.filter(report => report.id !== id);
+            setReports(updatedReports);
+        } catch (error) {
+            console.error('Error deleting report:', error);
+        }
     };
 
 
@@ -75,32 +118,50 @@ const Dashboard = () => {
         };
     }, []);
 
-    const handleAddAppointment = () => {
-        setAppointments([
-            ...appointments,
-            { id: appointments.length + 1, name: newAppointment.name, time: newAppointment.time, status: 'Pending' },
-        ]);
-        setNewAppointment({ name: '', time: '' });
+    const handleAddAppointment = async () => {
+        try {
+            const response = await axios.post('http://localhost:5001/api/dashboard_appointments', newAppointment);
+            setAppointments([...appointments, response.data]);
+            setNewAppointment({ name: '', time: '' });
+        } catch (err) {
+            console.error('Error adding appointment:', err);
+        }
     };
 
-    const handlePostponeAppointment = (id) => {
-        const appointment = appointments.find((app) => app.id === id);
-        setAppointments(appointments.filter((app) => app.id !== id));
-        setPostponedAppointments([...postponedAppointments, { ...appointment, status: 'Postponed' }]);
+    const handlePostponeAppointment = async (id) => {
+        try {
+            const response = await axios.patch(`http://localhost:5001/api/dashboard_appointments/postpone/${id}`);
+            setAppointments(appointments.filter(app => app.id !== id));
+            setPostponedAppointments([...postponedAppointments, response.data]);
+        } catch (err) {
+            console.error('Error postponing appointment:', err);
+        }
     };
 
-    const handleCompleteAppointment = (id) => {
-        const appointment = appointments.find((app) => app.id === id);
-        setAppointments(appointments.filter((app) => app.id !== id));
-        setCompletedAppointments([...completedAppointments, { ...appointment, status: 'Completed' }]);
+
+    const handleCompleteAppointment = async (id) => {
+        try {
+            const response = await axios.patch(`http://localhost:5001/api/dashboard_appointments/complete/${id}`);
+            setAppointments(appointments.filter(app => app.id !== id));
+            setCompletedAppointments([...completedAppointments, response.data]);
+        } catch (err) {
+            console.error('Error completing appointment:', err);
+        }
     };
 
-    // Function to delete a completed appointment
-    const handleDeleteCompletedAppointment = (id) => {
-        setCompletedAppointments(completedAppointments.filter((app) => app.id !== id));
+
+
+    const handleDeleteCompletedAppointment = async (id) => {
+        try {
+            await axios.delete(`http://localhost:5001/api/dashboard_appointments/${id}`);
+            setCompletedAppointments(completedAppointments.filter(app => app.id !== id));
+        } catch (err) {
+            console.error('Error deleting appointment:', err);
+        }
     };
 
-    // Function to move a postponed appointment back to upcoming
+
+
     const handleMoveUpPostponedAppointment = (id) => {
         const appointment = postponedAppointments.find((app) => app.id === id);
         setPostponedAppointments(postponedAppointments.filter((app) => app.id !== id));
@@ -143,6 +204,78 @@ const Dashboard = () => {
                 break;
         }
     };
+
+    // const lineChartData = {
+    //     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    //     datasets: [
+    //         {
+    //             label: 'Appointments',
+    //             data: [15, 12, 18, 22, 25, 30, 20, 28, 35, 40, 50, 55],
+    //             borderColor: '#007bff',
+    //             backgroundColor: 'rgba(0, 123, 255, 0.2)',
+    //             fill: true,
+    //             tension: 0.4,
+    //         }
+    //     ]
+    // };
+
+    // const lineChartOptions = {
+    //     responsive: true,
+    //     plugins: {
+    //         legend: {
+    //             position: 'top',
+    //         },
+    //         title: {
+    //             display: true,
+    //             text: 'Monthly Appointments',
+    //         },
+    //     },
+    // };
+
+    const [data, setData] = useState({
+        labels: [], // Your date labels here
+        datasets: [
+            {
+                label: 'Appointments',
+                data: [],
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1,
+            },
+        ],
+    });
+
+    useEffect(() => {
+        socket.on('appointmentUpdate', (newAppointment) => {
+            setData((prevData) => ({
+                ...prevData,
+                labels: [...prevData.labels, newAppointment.date],
+                datasets: [
+                    {
+                        ...prevData.datasets[0],
+                        data: [...prevData.datasets[0].data, newAppointment.count],
+                    },
+                ],
+            }));
+        });
+    
+        return () => socket.off('appointmentUpdate');
+    }, []);
+    
+    
+
+    useEffect(() => {
+        socket.on('connect', () => console.log('Connected to socket server'));
+        socket.on('disconnect', () => console.log('Disconnected from socket server'));
+    
+        return () => {
+            socket.off('connect');
+            socket.off('disconnect');
+        };
+    }, []);
+    
+    
+    
 
     return (
         <div style={styles.dashboardContainer}>
@@ -210,16 +343,15 @@ const Dashboard = () => {
                 </header>
 
                 {/* Scheduler section */}
-                <section style={styles.chartsSection}>
-                    <div style={styles.chartContainer}>
-                        <h3>Total and Follow-up Patients Graph (Last 12 Months)</h3>
-                        <Bar data={barChartData} options={barChartOptions} />
-                    </div>
-                    <div style={styles.pieChartContainer}>
-                        <h3>Patient Statistics</h3>
-                        <Pie data={pieChartData} options={pieChartOptions} />
-                    </div>
-                </section>
+                <div style={styles.dashboardContainer}>
+            {/* Chart Section */}
+            <section style={styles.chartsSection}>
+                <div style={styles.chartContainer}>
+                <h3>Real-Time Appointment Updates</h3>
+                <Line data={data} />
+                </div>
+            </section>
+        </div>
                 <section style={styles.schedulerSection} ref={schedulerRef}>
                     <h2>Scheduler</h2>
                     {/* Add new appointment */}
@@ -294,7 +426,7 @@ const Dashboard = () => {
                 </section>
 
                 {/* Reports section */}
-                <section ref={reportsRef} style={styles.section}>
+                <section ref={reportsRef} style={styles.schedulerSection}>
                     <h2>Reports</h2>
                     <div style={styles.uploadSection}>
                         <h3>Upload New Report</h3>
@@ -324,9 +456,15 @@ const Dashboard = () => {
                                     <li key={report.id} style={styles.reportItem}>
                                         <span>{report.name}</span>
                                         <div style={styles.reportActions}>
-                                            <a href={report.file} target="_blank" rel="noopener noreferrer" style={styles.downloadLink}>
+                                            <a
+                                                href={`http://localhost:5001/${report.filePath}`} // Adjust this to point correctly
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={styles.downloadLink}
+                                            >
                                                 View
                                             </a>
+
                                             <button onClick={() => handleDeleteReport(report.id)} style={styles.deleteButton}>
                                                 Delete
                                             </button>
@@ -342,61 +480,10 @@ const Dashboard = () => {
             </main>
         </div>
     );
+
+    
 };
 
-
-const barChartData = {
-    labels: ['Aug 2021', 'Sep 2021', 'Oct 2021', 'Nov 2021', 'Dec 2021', 'Jan 2022', 'Feb 2022', 'Mar 2022', 'Apr 2022', 'May 2022', 'Jun 2022', 'Jul 2022', 'Aug 2022'],
-    datasets: [
-        {
-            label: 'New Patients',
-            data: [1, 0, 1, 1, 0, 2, 4, 0, 3, 0, 0, 0, 1],
-            backgroundColor: 'red',
-        },
-        {
-            label: 'Follow-up Patients',
-            data: [2, 0, 0, 0, 0, 8, 12, 10, 5, 3, 3, 1, 3],
-            backgroundColor: 'blue',
-        }
-    ]
-};
-
-const barChartOptions = {
-    responsive: true,
-    plugins: {
-        legend: {
-            position: 'top',
-        },
-        title: {
-            display: true,
-            text: 'New vs Follow-up Patients',
-        },
-    },
-};
-
-
-const pieChartData = {
-    labels: ['Follow-up Patients', 'New Patients', 'In Patients', 'IP Strength'],
-    datasets: [
-        {
-            data: [32, 4, 8, 2],
-            backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'],
-        }
-    ]
-};
-
-const pieChartOptions = {
-    responsive: true,
-    plugins: {
-        legend: {
-            position: 'top',
-        },
-        title: {
-            display: true,
-            text: 'Patient Statistics',
-        },
-    },
-};
 
 const styles = {
     dashboardContainer: {
@@ -404,6 +491,19 @@ const styles = {
         height: '100vh',
         fontFamily: "'Poppins', sans-serif",
         backgroundColor: '#f0f4f7',
+    },
+    chartsSection: {
+        display: 'flex',
+        justifyContent: 'center',
+        padding: '20px',
+        width: '100%',
+    },
+    chartContainer: {
+        width: '80%',
+        padding: '20px',
+        borderRadius: '8px',
+        backgroundColor: '#f9f9f9',
+        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
     },
     sidebar: {
         width: '250px',
@@ -472,17 +572,6 @@ const styles = {
         width: '22%',
         textAlign: 'center',
         fontWeight: 'bold',
-    },
-    chartsSection: {
-        display: 'flex',
-        justifyContent: 'space-around',
-    },
-    chartContainer: {
-        width: '60%',
-        padding: '20px',
-        borderRadius: '8px',
-        backgroundColor: '#f9f9f9',
-        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
     },
     pieChartContainer: {
         width: '30%',

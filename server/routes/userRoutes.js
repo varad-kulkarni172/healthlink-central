@@ -8,7 +8,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 
 // JWT Secret - Replace this with a secure secret in production
-const JWT_SECRET = '2eee15647999e341afd5dc8906b577c9fdbe204f043e05528f730f2bccd6f119b9e81af3ba16b464ca79c12b31ee6ebb28c9fa36efcdece1566d0b81ce16928f';
+const JWT_SECRET = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJuYW1lIjoidGVzdHVzZXIiLCJpYXQiOjE3MzAwMzE3MTF9.YMM6GDQE4-UlhWBiOhnoK9EtHxvm5rd5l-327P5KEfA';
 
 // Register route
 router.post('/register', async (req, res) => {

@@ -30,12 +30,14 @@ router.delete('/:id', async (req, res) => {
         const medication = await Medication.findByPk(id);
         if (!medication) return res.status(404).json({ error: 'Medication not found' });
 
-        await Medication.destroy();
+        await medication.destroy(); // Use `medication.destroy()` instead of `Medication.destroy()`
         res.status(200).json({ message: 'Medication deleted' });
     } catch (err) {
+        console.error("Error deleting medication:", err); // Log the error for debugging
         res.status(500).json({ error: 'Failed to delete medication' });
     }
 });
+
 
 module.exports = router;
     

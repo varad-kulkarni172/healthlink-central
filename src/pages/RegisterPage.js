@@ -43,7 +43,7 @@ const RegisterPage = () => {
     
         try {
             // Send registration request to the backend
-            const response = await axios.post('http://localhost:5000/api/users/register', data); // Corrected URL
+            const response = await axios.post('http://localhost:5001/api/users/register', data); // Corrected URL
     
             if (response.status === 201) {
                 alert('Registration successful. Please log in to continue!');
@@ -279,6 +279,9 @@ const RegisterPage = () => {
                     >
                         <option value="Normal Patient">{t('Normal Patient')}</option>
                         <option value="Hospital Doc">{t('Hospital Doc')}</option>
+                        <option value="Nurse/Ward Boy">{t('Nurse/Ward Boy')}</option>
+                        <option value="Lab Staff">{t('Lab Staff')}</option>
+                        <option value="Pharmacy">{t('Pharmacy')}</option>
                     </select>
                     <button
                         type="submit"

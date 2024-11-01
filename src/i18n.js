@@ -19,7 +19,7 @@ const resources = {
             "Hospital Doc": "Hospital Doc",
             "Nurse/Ward Boy": "Nurse/Ward Boy",
             "Pharmacy": "Pharmacy",
-            "Nominee": "Nominee"
+            "Lab Staff": "Lab Staff"
         }
     },
     hi: {
@@ -38,7 +38,7 @@ const resources = {
             "Hospital Doc": "अस्पताल डॉक्टर",
             "Nurse/Ward Boy": "नर्स/वार्ड बॉय",
             "Pharmacy": "फार्मेसी",
-            "Nominee": "नामित व्यक्ति"
+            "Lab Staff": "लैब स्टाफ"
         }
     },
     mar: {
@@ -57,7 +57,7 @@ const resources = {
             "Hospital Doc": "रुग्णालयातील डॉक्टर",
             "Nurse/Ward Boy": "नर्स/वार्ड बॉय",
             "Pharmacy": "फार्मसी",
-            "Nominee": "नियुक्त व्यक्ती"
+            "Lab Staff": "लॅब स्टाफ"
         }
     }
 };

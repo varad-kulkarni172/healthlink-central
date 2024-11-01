@@ -34,7 +34,7 @@ const LoginPage = () => {
     const data = { aadharNumber, password };
 
     try {
-        const response = await axios.post('http://localhost:5000/api/users/login', data);
+        const response = await axios.post('http://localhost:5001/api/users/login', data);
 
         if (response.status === 200) {
             const { redirectUrl, token } = response.data;
@@ -264,6 +264,9 @@ const LoginPage = () => {
                         <option value="Normal Patient">{t('Normal Patient')}</option>
                         {/*<option value="Forum User">{t('Forum User')}</option>*/}
                         <option value="Hospital Doc">{t('Hospital Doc')}</option>
+                        <option value="Nurse/Ward Boy">{t('Nurse/Ward Boy')}</option>
+                        <option value="Lab Staff">{t('Lab Staff')}</option>
+                        <option value="Pharmacy">{t('Pharmacy')}</option>
                     </select>
                     <button type="submit" style={styles.button}>
                         {t('Login')}
