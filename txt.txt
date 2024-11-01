@@ -1,0 +1,18 @@
+these are to be installed in the server folder
+
+npm install express body-parser cors dotenv
+
+# Database dependencies
+npm install sequelize mysql2
+
+# Real-time communication dependencies
+npm install socket.io
+
+
+These are to be installed in the client folder
+
+# Core dependencies
+npm install axios socket.io-client
+
+# Charting library
+npm install chart.js react-chartjs-2

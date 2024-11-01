@@ -8,15 +8,90 @@ import { FaArrowUp } from 'react-icons/fa';
 import logo from '../images/logo.png';
 import io from 'socket.io-client';
 
-const socket = io('http://localhost:5001');
-
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+
+const socket = io('http://localhost:5001');
 
 
 const Dashboard = () => {
 
+    const [data, setData] = useState({
+        labels: [],
+        datasets: [
+            {
+                label: 'Appointments',
+                data: [],
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1,
+            },
+        ],
+    });
+
     const [appointments, setAppointments] = useState([]);
     const [newAppointment, setNewAppointment] = useState({ name: '', time: '' });
+
+    useEffect(() => {
+        // Initial fetch of appointments data from backend
+        axios.get('http://localhost:5001/api/dashboard_appointments')
+            .then(response => {
+                setAppointments(response.data);
+                // Initialize chart with existing appointment data
+                const labels = response.data.map(app => app.time);
+                const dataPoints = response.data.map((_, index) => index + 1);
+                setData(prevData => ({
+                    ...prevData,
+                    labels,
+                    datasets: [{
+                        ...prevData.datasets[0],
+                        data: dataPoints,
+                    }],
+                }));
+            })
+            .catch(error => console.error('Error fetching appointments:', error));
+    }, []);
+
+    // Listen for real-time updates
+    useEffect(() => {
+        socket.on('newAppointment', (appointment) => {
+            setAppointments((prevAppointments) => [...prevAppointments, appointment]);
+            updateChartData(appointment);
+        });
+
+        return () => {
+            socket.off('newAppointment');
+        };
+    }, []);
+
+    const updateChartData = (appointment) => {
+        setData(prevData => ({
+            ...prevData,
+            labels: [...prevData.labels, appointment.time],
+            datasets: [{
+                ...prevData.datasets[0],
+                data: [...prevData.datasets[0].data, prevData.datasets[0].data.length + 1],
+            }],
+        }));
+    };
+
+    const handleAddAppointment = async () => {
+        try {
+            const response = await axios.post('http://localhost:5001/api/dashboard_appointments', newAppointment);
+            setNewAppointment({ name: '', time: '' });
+        } catch (err) {
+            console.error('Error adding appointment:', err);
+        }
+    };
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setNewAppointment({ ...newAppointment, [name]: value });
+    };
+
+
+    
+
+
     const [postponedAppointments, setPostponedAppointments] = useState([]);
     const [completedAppointments, setCompletedAppointments] = useState([]);
 
@@ -45,11 +120,7 @@ const Dashboard = () => {
         });
     };
 
-    useEffect(() => {
-        axios.get('http://localhost:5001/api/dashboard_appointments')
-            .then(response => setAppointments(response.data))
-            .catch(error => console.error('Error fetching appointments:', error));
-    }, []);
+   
 
     useEffect(() => {
         const fetchReports = async () => {
@@ -118,15 +189,15 @@ const Dashboard = () => {
         };
     }, []);
 
-    const handleAddAppointment = async () => {
-        try {
-            const response = await axios.post('http://localhost:5001/api/dashboard_appointments', newAppointment);
-            setAppointments([...appointments, response.data]);
-            setNewAppointment({ name: '', time: '' });
-        } catch (err) {
-            console.error('Error adding appointment:', err);
-        }
-    };
+    // const handleAddAppointment = async () => {
+    //     try {
+    //         const response = await axios.post('http://localhost:5001/api/dashboard_appointments', newAppointment);
+    //         setAppointments([...appointments, response.data]);
+    //         setNewAppointment({ name: '', time: '' });
+    //     } catch (err) {
+    //         console.error('Error adding appointment:', err);
+    //     }
+    // };
 
     const handlePostponeAppointment = async (id) => {
         try {
@@ -168,10 +239,10 @@ const Dashboard = () => {
         setAppointments([...appointments, { ...appointment, status: 'Pending' }]);
     };
 
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setNewAppointment({ ...newAppointment, [name]: value });
-    };
+    // const handleInputChange = (e) => {
+    //     const { name, value } = e.target;
+    //     setNewAppointment({ ...newAppointment, [name]: value });
+    // };
 
 
 
@@ -232,18 +303,18 @@ const Dashboard = () => {
     //     },
     // };
 
-    const [data, setData] = useState({
-        labels: [], // Your date labels here
-        datasets: [
-            {
-                label: 'Appointments',
-                data: [],
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                borderColor: 'rgba(75, 192, 192, 1)',
-                borderWidth: 1,
-            },
-        ],
-    });
+    // const [data, setData] = useState({
+    //     labels: [], // Your date labels here
+    //     datasets: [
+    //         {
+    //             label: 'Appointments',
+    //             data: [],
+    //             backgroundColor: 'rgba(75, 192, 192, 0.2)',
+    //             borderColor: 'rgba(75, 192, 192, 1)',
+    //             borderWidth: 1,
+    //         },
+    //     ],
+    // });
 
     useEffect(() => {
         socket.on('appointmentUpdate', (newAppointment) => {

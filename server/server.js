@@ -1,12 +1,12 @@
 // server/server.js
 const express = require('express');
-const http = require('http');  // Import http to create the server
+const http = require('http');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const socketIo = require('socket.io');  // Import Socket.IO
 const { Server } = require('socket.io');
 const sequelize = require('./config/db');
+const dashboardAppointment = require('./models/dashboardAppointment'); // Import the appointment model
 const userRoutes = require('./routes/userRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const appointmentRoutes = require('./routes/appointmentRoutes');
@@ -16,25 +16,23 @@ const medicationRoutes = require('./routes/medicationRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const dasboardreportRoutes = require('./routes/dashboardreportRoutes');
 const dashboardappointmentRoutes = require('./routes/dashboardappointmentRoutes');
-const { dashboardAppointment } = require('./models/dashboardAppointment');
-
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
-const server = http.createServer(app);  // Create the HTTP server
-const io = socketIo(server, {
+const server = http.createServer(app);
+const io = new Server(server, {
     cors: {
-        origin: "http://localhost:3000",  // Replace with the correct frontend origin
+        origin: "http://localhost:3000",
         methods: ["GET", "POST"]
     }
-});  // Attach Socket.IO to the server
+});
 
 // Middlewares
 app.use(cors());
 app.use(bodyParser.json());
-app.use('/uploads', express.static('uploads'));  // Serve the 'uploads' folder
+app.use('/uploads', express.static('uploads'));
 
 // Routes
 app.use('/api/users', userRoutes);
@@ -47,15 +45,15 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/dashboard_reports', dasboardreportRoutes);
 app.use('/api/dashboard_appointments', dashboardappointmentRoutes);
 
-// Socket.IO event handling
+// Socket.IO connection
 io.on('connection', (socket) => {
-    console.log('Client connected');
-
+    console.log('Client connected to socket');
     socket.on('disconnect', () => {
-        console.log('Client disconnected');
+        console.log('Client disconnected from socket');
     });
 });
 
+// Add new appointment and emit update
 app.post('/api/dashboard_appointments', async (req, res) => {
     try {
         const newAppointment = await dashboardAppointment.create(req.body);
@@ -74,7 +72,7 @@ app.post('/api/dashboard_appointments', async (req, res) => {
 sequelize.sync({ force: false })
     .then(() => {
         const PORT = process.env.PORT || 5001;
-        server.listen(PORT, () => {  // Start the server with the http server
+        server.listen(PORT, () => {
             console.log(`Server is running on port ${PORT}`);
         });
     })
