@@ -29,13 +29,21 @@ const Dashboard = () => {
     });
 
     const [appointments, setAppointments] = useState([]);
+    const [postponedAppointments, setPostponedAppointments] = useState([]);
+    const [completedAppointments, setCompletedAppointments] = useState([]);
+    const [metrics, setMetrics] = useState({
+        waitingToConsult: 0,
+        totalPrescribedCount: 0,
+        appointmentsForTomorrow: 0,
+    });
     const [newAppointment, setNewAppointment] = useState({ name: '', time: '' });
 
     useEffect(() => {
-        // Initial fetch of appointments data from backend
-        axios.get('http://localhost:5001/api/dashboard_appointments')
-            .then(response => {
+        const fetchAppointments = async () => {
+            try {
+                const response = await axios.get('http://localhost:5001/api/dashboard_appointments');
                 setAppointments(response.data);
+                updateMetrics(response.data); // Update metrics with fetched data
                 // Initialize chart with existing appointment data
                 const labels = response.data.map(app => app.time);
                 const dataPoints = response.data.map((_, index) => index + 1);
@@ -47,8 +55,50 @@ const Dashboard = () => {
                         data: dataPoints,
                     }],
                 }));
-            })
-            .catch(error => console.error('Error fetching appointments:', error));
+            } catch (error) {
+                console.error('Error fetching appointments:', error);
+            }
+        };
+
+        fetchAppointments();
+    }, []);
+
+    const updateMetrics = (appointments) => {
+        const waitingToConsult = appointments.filter(app => app.status === 'Pending').length;
+        const totalPrescribedCount = appointments.length; // or your logic for prescribed count
+        const appointmentsForTomorrow = appointments.filter(app => new Date(app.time).setHours(0, 0, 0, 0) === new Date().setHours(0, 0, 0, 0) + 86400000).length; // assuming time is in the correct format
+
+        setMetrics({ waitingToConsult, totalPrescribedCount, appointmentsForTomorrow });
+    };
+
+    useEffect(() => {
+        socket.on('updateAppointment', ({ action, data, id }) => {
+            setAppointments(prevAppointments => {
+                let updatedAppointments;
+                switch (action) {
+                    case 'add':
+                        updatedAppointments = [...prevAppointments, data];
+                        break;
+                    case 'delete':
+                        updatedAppointments = prevAppointments.filter(appointment => appointment.id !== id);
+                        break;
+                    case 'postpone':
+                    case 'complete':
+                        updatedAppointments = prevAppointments.map(appointment => 
+                            appointment.id === data.id ? data : appointment
+                        );
+                        break;
+                    default:
+                        updatedAppointments = prevAppointments;
+                }
+                updateMetrics(updatedAppointments); // Update metrics based on the updated appointments
+                return updatedAppointments;
+            });
+        });
+
+        return () => {
+            socket.off('updateAppointment');
+        };
     }, []);
 
     // Listen for real-time updates
@@ -78,6 +128,9 @@ const Dashboard = () => {
         try {
             const response = await axios.post('http://localhost:5001/api/dashboard_appointments', newAppointment);
             setNewAppointment({ name: '', time: '' });
+            const updatedAppointments = [...appointments, response.data];
+            updateMetrics(updatedAppointments); // Update metrics after adding appointment
+            updateChartData(response.data);
         } catch (err) {
             console.error('Error adding appointment:', err);
         }
@@ -87,13 +140,6 @@ const Dashboard = () => {
         const { name, value } = e.target;
         setNewAppointment({ ...newAppointment, [name]: value });
     };
-
-
-    
-
-
-    const [postponedAppointments, setPostponedAppointments] = useState([]);
-    const [completedAppointments, setCompletedAppointments] = useState([]);
 
     const [reports, setReports] = useState([]); // To store uploaded reports
     const [file, setFile] = useState(null); // To handle file input
@@ -189,21 +235,13 @@ const Dashboard = () => {
         };
     }, []);
 
-    // const handleAddAppointment = async () => {
-    //     try {
-    //         const response = await axios.post('http://localhost:5001/api/dashboard_appointments', newAppointment);
-    //         setAppointments([...appointments, response.data]);
-    //         setNewAppointment({ name: '', time: '' });
-    //     } catch (err) {
-    //         console.error('Error adding appointment:', err);
-    //     }
-    // };
 
     const handlePostponeAppointment = async (id) => {
         try {
             const response = await axios.patch(`http://localhost:5001/api/dashboard_appointments/postpone/${id}`);
-            setAppointments(appointments.filter(app => app.id !== id));
+            const updatedAppointments = appointments.filter(app => app.id !== id);
             setPostponedAppointments([...postponedAppointments, response.data]);
+            updateMetrics(updatedAppointments); // Update metrics after postponing appointment
         } catch (err) {
             console.error('Error postponing appointment:', err);
         }
@@ -213,8 +251,9 @@ const Dashboard = () => {
     const handleCompleteAppointment = async (id) => {
         try {
             const response = await axios.patch(`http://localhost:5001/api/dashboard_appointments/complete/${id}`);
-            setAppointments(appointments.filter(app => app.id !== id));
+            const updatedAppointments = appointments.filter(app => app.id !== id);
             setCompletedAppointments([...completedAppointments, response.data]);
+            updateMetrics(updatedAppointments); // Update metrics after completing appointment
         } catch (err) {
             console.error('Error completing appointment:', err);
         }
@@ -239,13 +278,6 @@ const Dashboard = () => {
         setAppointments([...appointments, { ...appointment, status: 'Pending' }]);
     };
 
-    // const handleInputChange = (e) => {
-    //     const { name, value } = e.target;
-    //     setNewAppointment({ ...newAppointment, [name]: value });
-    // };
-
-
-
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('Dashboard');
 
@@ -260,61 +292,28 @@ const Dashboard = () => {
 
     const handleScrollToSection = (section) => {
         setActiveTab(section);
-
+    
         switch (section) {
             case 'Dashboard':
-                dashboardRef.current.scrollIntoView({ behavior: 'smooth' });
+                if (dashboardRef.current) {
+                    dashboardRef.current.scrollIntoView({ behavior: 'smooth' });
+                }
                 break;
             case 'Scheduler':
-                schedulerRef.current.scrollIntoView({ behavior: 'smooth' });
+                if (schedulerRef.current) {
+                    schedulerRef.current.scrollIntoView({ behavior: 'smooth' });
+                }
                 break;
             case 'Reports':
-                reportsRef.current.scrollIntoView({ behavior: 'smooth' });
+                if (reportsRef.current) {
+                    reportsRef.current.scrollIntoView({ behavior: 'smooth' });
+                }
                 break;
             default:
                 break;
         }
     };
-
-    // const lineChartData = {
-    //     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-    //     datasets: [
-    //         {
-    //             label: 'Appointments',
-    //             data: [15, 12, 18, 22, 25, 30, 20, 28, 35, 40, 50, 55],
-    //             borderColor: '#007bff',
-    //             backgroundColor: 'rgba(0, 123, 255, 0.2)',
-    //             fill: true,
-    //             tension: 0.4,
-    //         }
-    //     ]
-    // };
-
-    // const lineChartOptions = {
-    //     responsive: true,
-    //     plugins: {
-    //         legend: {
-    //             position: 'top',
-    //         },
-    //         title: {
-    //             display: true,
-    //             text: 'Monthly Appointments',
-    //         },
-    //     },
-    // };
-
-    // const [data, setData] = useState({
-    //     labels: [], // Your date labels here
-    //     datasets: [
-    //         {
-    //             label: 'Appointments',
-    //             data: [],
-    //             backgroundColor: 'rgba(75, 192, 192, 0.2)',
-    //             borderColor: 'rgba(75, 192, 192, 1)',
-    //             borderWidth: 1,
-    //         },
-    //     ],
-    // });
+    
 
     useEffect(() => {
         socket.on('appointmentUpdate', (newAppointment) => {
@@ -405,13 +404,13 @@ const Dashboard = () => {
             </nav>
 
             <main style={styles.mainContent}>
-                <header style={styles.header}>
-                    <div style={styles.metricsContainer} ref={dashboardRef}>
-                        <div style={styles.metricCard}>1 Waiting to Consult</div>
-                        <div style={styles.metricCard}>40 Total Prescribed Count</div>
-                        <div style={styles.metricCard}>0 Appointments for Tomorrow</div>
-                    </div>
-                </header>
+            <header style={styles.header}>
+                <div style={styles.metricsContainer}>
+                    <div style={styles.metricCard}>{metrics.waitingToConsult} Waiting to Consult</div>
+                    <div style={styles.metricCard}>{metrics.totalPrescribedCount} Total Completed Count</div>
+                    <div style={styles.metricCard}>{metrics.appointmentsForTomorrow} Appointments for Tomorrow</div>
+                </div>
+            </header>
 
                 {/* Scheduler section */}
                 <div style={styles.dashboardContainer}>
@@ -555,26 +554,13 @@ const Dashboard = () => {
     
 };
 
-
 const styles = {
     dashboardContainer: {
         display: 'flex',
         height: '100vh',
         fontFamily: "'Poppins', sans-serif",
         backgroundColor: '#f0f4f7',
-    },
-    chartsSection: {
-        display: 'flex',
-        justifyContent: 'center',
-        padding: '20px',
-        width: '100%',
-    },
-    chartContainer: {
-        width: '80%',
-        padding: '20px',
-        borderRadius: '8px',
-        backgroundColor: '#f9f9f9',
-        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+        flexDirection: 'row', // Default row layout for larger screens
     },
     sidebar: {
         width: '250px',
@@ -618,6 +604,19 @@ const styles = {
     navItemIcon: {
         marginRight: '10px',
     },
+    chartsSection: {
+        display: 'flex',
+        justifyContent: 'center',
+        padding: '20px',
+        width: '100%',
+    },
+    chartContainer: {
+        width: '80%',
+        padding: '20px',
+        borderRadius: '8px',
+        backgroundColor: '#f9f9f9',
+        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+    },
     mainContent: {
         flex: 1,
         padding: '20px',
@@ -626,7 +625,6 @@ const styles = {
     },
     header: {
         display: 'flex',
-        flexWrap: '20px',
         justifyContent: 'space-between',
         marginBottom: '20px',
     },
@@ -634,6 +632,7 @@ const styles = {
         display: 'flex',
         justifyContent: 'space-around',
         width: '100%',
+        flexWrap: 'wrap', // Allow wrapping for smaller screens
     },
     metricCard: {
         backgroundColor: '#f0f0f0',
@@ -643,6 +642,7 @@ const styles = {
         width: '22%',
         textAlign: 'center',
         fontWeight: 'bold',
+        margin: '10px', // Add margin for better spacing on wrap
     },
     pieChartContainer: {
         width: '30%',
@@ -666,11 +666,11 @@ const styles = {
         display: 'flex',
         justifyContent: 'space-between',
         marginBottom: '20px',
+        flexWrap: 'wrap', // Allow form fields to wrap on smaller screens
     },
     inputFocus: {
         borderColor: '#0d47a1',
     },
-
     buttonHover: {
         backgroundColor: '#063373',
     },
@@ -699,10 +699,6 @@ const styles = {
     postponedStatus: {
         color: '#ff5722',
         fontWeight: 'bold',
-    },
-    '@keyframes fadeIn': {
-        from: { opacity: 0 },
-        to: { opacity: 1 },
     },
     appointmentItem: {
         display: 'flex',
@@ -735,23 +731,8 @@ const styles = {
         backgroundColor: '#f8f9fa',
         borderRadius: '5px',
     },
-    input: {
-        margin: '5px 0',
-        padding: '10px',
-        width: 'calc(100% - 22px)',
-        border: '1px solid #ccc',
-        borderRadius: '5px',
-    },
     fileInput: {
         margin: '5px 0',
-    },
-    button: {
-        padding: '10px',
-        backgroundColor: '#007bff',
-        color: '#fff',
-        border: 'none',
-        borderRadius: '5px',
-        cursor: 'pointer',
     },
     reportList: {
         marginTop: '15px',
@@ -779,6 +760,97 @@ const styles = {
         cursor: 'pointer',
         marginLeft: '25px'
     },
+    '@keyframes fadeIn': {
+        from: { opacity: 0 },
+        to: { opacity: 1 },
+    },
+
+    // Responsive styling
+    '@media (max-width: 1024px)': { // Tablet
+        dashboardContainer: {
+            flexDirection: 'column',
+        },
+        sidebar: {
+            width: '100%',
+            padding: '15px',
+            position: 'relative', // Positioned on top for tablet view
+        },
+        metricsContainer: {
+            flexDirection: 'column',
+            gap: '15px',
+        },
+        metricCard: {
+            width: '100%',
+            padding: '20px',
+        },
+        chartContainer: {
+            width: '90%',
+            padding: '15px',
+        },
+        pieChartContainer: {
+            width: '90%',
+            padding: '15px',
+        },
+    },
+    '@media (max-width: 768px)': { // Small tablets and large phones
+        formContainer: {
+            flexDirection: 'column',
+            gap: '15px',
+        },
+        button: {
+            width: '100%',
+        },
+        sidebar: {
+            width: '100%',
+            padding: '10px',
+            boxShadow: 'none', // Simplify for small screens
+        },
+        chartContainer: {
+            width: '100%',
+            padding: '10px',
+        },
+        pieChartContainer: {
+            width: '100%',
+            padding: '10px',
+        },
+    },
+    '@media (max-width: 480px)': { // Mobile
+        sidebar: {
+            width: '100%',
+            padding: '5px 10px',
+        },
+        logo: {
+            width: '80px',
+            margin: '0 auto 10px auto', // Center logo for better fit
+        },
+        navItem: {
+            padding: '8px 5px',
+            fontSize: '0.9rem',
+        },
+        metricCard: {
+            width: '100%',
+            padding: '15px',
+            margin: '10px 0', // Add spacing between cards
+        },
+        chartContainer: {
+            width: '100%',
+            padding: '8px',
+        },
+        formContainer: {
+            flexDirection: 'column',
+            gap: '10px',
+        },
+        appointmentCard: {
+            padding: '8px',
+            fontSize: '0.9rem',
+        },
+        deleteButton: {
+            width: '100%', // Full width for accessibility
+            textAlign: 'center',
+            margin: '10px 0', 
+        },
+    },
 };
+
 
 export default Dashboard;

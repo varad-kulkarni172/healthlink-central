@@ -1,22 +1,49 @@
-import React, { useState, useRef, useEffect } from 'react';
-import axios from 'axios';
-import { Link, useNavigate } from 'react-router-dom';
-import { FiLogOut } from 'react-icons/fi';
-import { FaArrowUp } from 'react-icons/fa';
-import logo from '../images/logo.png';
+    import React, { useState, useRef, useEffect } from 'react';
+    import axios from 'axios';
+    import { Link, useNavigate } from 'react-router-dom';
+    import { FiLogOut } from 'react-icons/fi';
+    import { FaArrowUp } from 'react-icons/fa';
+    import logo from '../images/logo.png';
+    import io from 'socket.io-client';
 
-const NormalPatient = () => {
+    const socket = io('http://localhost:5001');
 
-    const [appointments, setAppointments] = useState([]);
-    const [newAppointment, setNewAppointment] = useState({ name: '', time: '' });
-    const [postponedAppointments, setPostponedAppointments] = useState([]);
-    const [completedAppointments, setCompletedAppointments] = useState([]);
+    const NormalPatient = () => {
 
-    useEffect(() => {
-        axios.get('http://localhost:5001/api/appointments')
-            .then(response => setAppointments(response.data))
-            .catch(error => console.error('Error fetching appointments:', error));
-    }, []);
+        const [appointments, setAppointments] = useState([]);
+        const [newAppointment, setNewAppointment] = useState({ name: '', time: '' });
+        const [postponedAppointments, setPostponedAppointments] = useState([]);
+        const [completedAppointments, setCompletedAppointments] = useState([]);
+
+        useEffect(() => {
+            axios.get('http://localhost:5001/api/appointments')
+                .then(response => setAppointments(response.data))
+                .catch(error => console.error('Error fetching appointments:', error));
+        }, []);
+
+        // Real-time updates from the server
+        useEffect(() => {
+            socket.on('updateAppointment', ({ action, data, id }) => {
+                setAppointments(prevAppointments => {
+                    switch (action) {
+                        case 'add':
+                            return [...prevAppointments, data];
+                        case 'delete':
+                            return prevAppointments.filter(app => app.id !== id);
+                        case 'postpone':
+                            return prevAppointments.map(app => (app.id === data.id ? data : app));
+                        case 'complete':
+                            return prevAppointments.map(app => (app.id === data.id ? data : app));
+                        default:
+                            return prevAppointments;
+                    }
+                });
+            });
+    
+            return () => {
+                socket.off('updateAppointment');
+            };
+        }, []);
 
     const [medicalRecords, setMedicalRecords] = useState([]);
     const [newMedicalRecord, setNewMedicalRecord] = useState({ date: '', name: '', result: '' });
@@ -253,6 +280,8 @@ const NormalPatient = () => {
             const response = await axios.post('http://localhost:5001/api/appointments', newAppointment);
             setAppointments([...appointments, response.data]);
             setNewAppointment({ name: '', time: '' });
+            // Emit socket event to notify other dashboard
+            socket.emit('updateAppointment', { action: 'add', data: response.data });
         } catch (err) {
             console.error('Error adding appointment:', err);
         }
@@ -263,41 +292,45 @@ const NormalPatient = () => {
             const response = await axios.patch(`http://localhost:5001/api/appointments/postpone/${id}`);
             setAppointments(appointments.filter(app => app.id !== id));
             setPostponedAppointments([...postponedAppointments, response.data]);
+            // Emit socket event to notify other dashboard
+            socket.emit('updateAppointment', { action: 'postpone', data: response.data, id });
         } catch (err) {
             console.error('Error postponing appointment:', err);
         }
     };
-
 
     const handleCompleteAppointment = async (id) => {
         try {
             const response = await axios.patch(`http://localhost:5001/api/appointments/complete/${id}`);
             setAppointments(appointments.filter(app => app.id !== id));
             setCompletedAppointments([...completedAppointments, response.data]);
+            // Emit socket event to notify other dashboard
+            socket.emit('updateAppointment', { action: 'complete', data: response.data, id });
         } catch (err) {
             console.error('Error completing appointment:', err);
         }
     };
 
-
-
     const handleDeleteCompletedAppointment = async (id) => {
         try {
             await axios.delete(`http://localhost:5001/api/appointments/${id}`);
             setCompletedAppointments(completedAppointments.filter(app => app.id !== id));
+            // Emit socket event to notify other dashboard
+            socket.emit('updateAppointment', { action: 'delete', id });
         } catch (err) {
             console.error('Error deleting appointment:', err);
         }
     };
 
-
-
     const handleMoveUpPostponedAppointment = (id) => {
         const appointment = postponedAppointments.find((app) => app.id === id);
         setPostponedAppointments(postponedAppointments.filter((app) => app.id !== id));
         setAppointments([...appointments, { ...appointment, status: 'Pending' }]);
+        // Emit socket event to notify other dashboard
+        socket.emit('updateAppointment', { action: 'add', data: { ...appointment, status: 'Pending' } });
     };
 
+    
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('Appointments');
 
@@ -619,10 +652,11 @@ const styles = {
         height: '100vh',
         fontFamily: "'Poppins', sans-serif",
         backgroundColor: '#f0f4f7',
+        flexDirection: 'row', // Default row layout for larger screens
     },
     sidebar: {
         width: '250px',
-        backgroundColor: '#0da186',
+        backgroundColor: '#097969',
         padding: '20px',
         color: '#fff',
         display: 'flex',
@@ -662,11 +696,52 @@ const styles = {
     navItemIcon: {
         marginRight: '10px',
     },
+    chartsSection: {
+        display: 'flex',
+        justifyContent: 'center',
+        padding: '20px',
+        width: '100%',
+    },
+    chartContainer: {
+        width: '80%',
+        padding: '20px',
+        borderRadius: '8px',
+        backgroundColor: '#f9f9f9',
+        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+    },
     mainContent: {
         flex: 1,
-        padding: '70px',
+        padding: '20px',
         backgroundColor: '#fff',
         overflowY: 'scroll',
+    },
+    header: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        marginBottom: '20px',
+    },
+    metricsContainer: {
+        display: 'flex',
+        justifyContent: 'space-around',
+        width: '100%',
+        flexWrap: 'wrap', // Allow wrapping for smaller screens
+    },
+    metricCard: {
+        backgroundColor: '#f0f0f0',
+        padding: '40px',
+        borderRadius: '8px',
+        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+        width: '22%',
+        textAlign: 'center',
+        fontWeight: 'bold',
+        margin: '10px', // Add margin for better spacing on wrap
+    },
+    pieChartContainer: {
+        width: '30%',
+        padding: '20px',
+        borderRadius: '8px',
+        backgroundColor: '#f9f9f9',
+        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
     },
     bottomNav: {
         paddingTop: '20px',
@@ -683,6 +758,7 @@ const styles = {
         display: 'flex',
         justifyContent: 'space-between',
         marginBottom: '20px',
+        flexWrap: 'wrap', // Allow form fields to wrap on smaller screens
     },
     inputFocus: {
         borderColor: '#0d47a1',
@@ -715,10 +791,6 @@ const styles = {
     postponedStatus: {
         color: '#ff5722',
         fontWeight: 'bold',
-    },
-    '@keyframes fadeIn': {
-        from: { opacity: 0 },
-        to: { opacity: 1 },
     },
     appointmentItem: {
         display: 'flex',
@@ -767,7 +839,6 @@ const styles = {
     downloadLink: {
         color: '#007bff',
         textDecoration: 'none',
-        cursor: 'pointer',
     },
     section: {
         marginTop: '20px',
@@ -779,146 +850,101 @@ const styles = {
         border: 'none',
         borderRadius: '5px',
         cursor: 'pointer',
-        marginLeft: '25px',
+        marginLeft: '25px'
     },
-    medicalRecordsContainer: {
-        padding: '20px',
-        backgroundColor: '#f9f9f9',
-        borderRadius: '8px',
-        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
-        marginBottom: '20px',
-    },
-    medicalRecordList: {
-        listStyle: 'none',
-        padding: '0',
-    },
-    medicalRecordItem: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '10px',
-        borderBottom: '1px solid #ddd',
-    },
-    medicalRecordInput: {
-        marginRight: '10px',
-        padding: '8px',
-        borderRadius: '4px',
-        border: '1px solid #ccc',
-        width: 'calc(100% - 22px)',
-    },
-    addButton: {
-        padding: '10px',
-        backgroundColor: '#007bff',
-        color: '#fff',
-        border: 'none',
-        borderRadius: '5px',
-        cursor: 'pointer',
-    },
-    medicalBillsContainer: {
-        padding: '20px',
-        backgroundColor: '#f9f9f9',
-        borderRadius: '8px',
-        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
-        marginBottom: '20px',
-    },
-    medicalBillList: {
-        listStyle: 'none',
-        padding: '0',
-    },
-    medicalBillItem: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '10px',
-        borderBottom: '1px solid #ddd',
-    },
-    medicalBIllInput: {
-        marginRight: '10px',
-        padding: '8px',
-        borderRadius: '4px',
-        border: '1px solid #ccc',
-        width: 'calc(100% - 22px)',
+    '@keyframes fadeIn': {
+        from: { opacity: 0 },
+        to: { opacity: 1 },
     },
 
-    // Responsive design
-    '@media (max-width: 768px)': {
+    // Responsive styling
+    '@media (max-width: 1024px)': { // Tablet
         dashboardContainer: {
             flexDirection: 'column',
         },
         sidebar: {
             width: '100%',
-            padding: '10px',
-            textAlign: 'center',
+            padding: '15px',
+            position: 'relative', // Positioned on top for tablet view
         },
-        mainContent: {
+        metricsContainer: {
+            flexDirection: 'column',
+            gap: '15px',
+        },
+        metricCard: {
+            width: '100%',
             padding: '20px',
         },
-        logo: {
-            margin: '0 auto',
+        chartContainer: {
+            width: '90%',
+            padding: '15px',
         },
-        navItem: {
-            justifyContent: 'center',
+        pieChartContainer: {
+            width: '90%',
+            padding: '15px',
         },
+    },
+    '@media (max-width: 768px)': { // Small tablets and large phones
         formContainer: {
             flexDirection: 'column',
+            gap: '15px',
         },
         button: {
             width: '100%',
-            margin: '10px 0',
-        },
-        appointmentCard: {
-            flexDirection: 'column',
-            alignItems: 'flex-start',
-        },
-    },
-    '@media (max-width: 480px)': {
-        dashboardContainer: {
-            height: 'auto',
         },
         sidebar: {
-            padding: '5px',
-        },
-        mainContent: {
+            width: '100%',
             padding: '10px',
+            boxShadow: 'none', // Simplify for small screens
+        },
+        chartContainer: {
+            width: '100%',
+            padding: '10px',
+        },
+        pieChartContainer: {
+            width: '100%',
+            padding: '10px',
+        },
+    },
+    '@media (max-width: 480px)': { // Mobile
+        sidebar: {
+            width: '100%',
+            padding: '5px 10px',
         },
         logo: {
             width: '80px',
-            marginBottom: '10px',
+            margin: '0 auto 10px auto', // Center logo for better fit
         },
         navItem: {
+            padding: '8px 5px',
+            fontSize: '0.9rem',
+        },
+        metricCard: {
+            width: '100%',
+            padding: '15px',
+            margin: '10px 0', // Add spacing between cards
+        },
+        chartContainer: {
+            width: '100%',
             padding: '8px',
         },
         formContainer: {
             flexDirection: 'column',
+            gap: '10px',
         },
-        input: {
-            width: '100%',
-            marginBottom: '10px',
-        },
-        button: {
-            width: '100%',
-            marginBottom: '10px',
-        },
-        reportItem: {
-            flexDirection: 'column',
-            alignItems: 'flex-start',
+        appointmentCard: {
+            padding: '8px',
+            fontSize: '0.9rem',
         },
         deleteButton: {
-            width: '100%',
-            margin: '10px 0 0 0',
-        },
-        uploadSection: {
-            padding: '10px',
-        },
-        medicalRecordInput: {
-            width: '100%',
-            marginBottom: '10px',
-        },
-        addButton: {
-            width: '100%',
+            width: '100%', // Full width for accessibility
+            textAlign: 'center',
+            margin: '10px 0', 
         },
     },
-};
+};  
+
+
 
 
 export default NormalPatient;

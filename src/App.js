@@ -6,13 +6,17 @@ import LoginPage from './pages/LoginPage';
 import NormalPatient from './components/NormalPatient';
 import Dashboard from './components/Dashboard';
 import ForumUser from './components/ForumUser';
+import { AuthProvider } from './components/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import NurseDashboard from './components/NurseDashboard';
 import LabStaffDashboard from './components/LabStaffDashboard';
 import PharmacyDashboard from './components/PharmacyDashboard';
 
+
+
 function App() {
     return (
+        <AuthProvider>
         <Router>
             <Routes>
                 <Route path="/" element={<HomePage />} />
@@ -26,13 +30,18 @@ function App() {
                         </ProtectedRoute>
                     }
                 />
-                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/dashboard" element={
+                    <ProtectedRoute>
+                    <Dashboard />
+                    </ProtectedRoute>
+                    } />
                 <Route path="/forumuser" element={<ForumUser />} />
                 <Route path="/nursedashboard" element={<NurseDashboard />} />
                 <Route path="/labstaffdashboard" element={<LabStaffDashboard />} />
                 <Route path="/pharmacydashboard" element={<PharmacyDashboard />} />
             </Routes>
         </Router>
+        </AuthProvider>
     );
 }
 

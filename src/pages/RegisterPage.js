@@ -74,6 +74,7 @@ const RegisterPage = () => {
             fontFamily: "'Poppins', sans-serif",
             backgroundColor: '#e0f7fa',
             animation: 'fadeIn 1s ease-in-out',
+            flexDirection: 'row',
         },
         leftSection: {
             flex: 1,
@@ -137,6 +138,7 @@ const RegisterPage = () => {
             borderRadius: '30px',
             boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
             transition: 'transform 0.3s ease',
+            maxWidth: '90%',
         },
         input: {
             margin: '10px 0',
@@ -210,7 +212,80 @@ const RegisterPage = () => {
             from: { opacity: 0 },
             to: { opacity: 1 },
         },
+        /* Responsive styling */
+        '@media (max-width: 1024px)': { // Tablets
+            container: {
+                flexDirection: 'column',
+            },
+            formSection: {
+                padding: '15px',
+            },
+            form: {
+                padding: '20px',
+                width: '80%',
+            },
+            slideImage: {
+                width: '80%',
+            },
+            button: {
+                padding: '10px 25px',
+                fontSize: '0.9rem',
+            },
+        },
+        '@media (max-width: 768px)': { // Small tablets and large phones
+            container: {
+                flexDirection: 'column',
+                padding: '10px',
+            },
+            formSection: {
+                padding: '10px',
+            },
+            form: {
+                width: '90%',
+                padding: '15px',
+            },
+            slideImage: {
+                width: '70%',
+                top: '10px',
+                borderRadius: '15px',
+            },
+            button: {
+                padding: '8px 20px',
+                fontSize: '0.9rem',
+            },
+        },
+        '@media (max-width: 480px)': { // Mobile devices
+            container: {
+                flexDirection: 'column',
+                padding: '5px',
+            },
+            formSection: {
+                padding: '5px',
+            },
+            form: {
+                width: '95%',
+                padding: '10px',
+                borderRadius: '20px',
+            },
+            slideImage: {
+                width: '85%',
+                borderRadius: '10px',
+            },
+            button: {
+                padding: '7px 15px',
+                fontSize: '0.8rem',
+            },
+            dotsWrapper: {
+                bottom: '10px',
+            },
+            dot: {
+                height: '8px',
+                width: '8px',
+            },
+        },
     };
+    
+    
 
     return (
         <div style={styles.container}>

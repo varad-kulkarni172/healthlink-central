@@ -3,9 +3,11 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useAuth } from '../components/AuthContext';
 
 const LoginPage = () => {
     const navigate = useNavigate();
+    const { login } = useAuth();
 
     const [aadharNumber, setAadharNumber] = useState('');
     const [password, setPassword] = useState('');
@@ -29,28 +31,30 @@ const LoginPage = () => {
     }, [slides.length]);
 
     const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    const data = { aadharNumber, password };
-
-    try {
-        const response = await axios.post('http://localhost:5001/api/users/login', data);
-
-        if (response.status === 200) {
-            const { redirectUrl, token } = response.data;
-            console.log(`Redirect URL: ${redirectUrl}`); // Debugging
-            localStorage.setItem('token', token);
-            navigate(redirectUrl);
+        e.preventDefault();
+     
+        const data = { aadharNumber, password }; // userType is not necessary here unless your API requires it
+     
+        try {
+            const response = await axios.post('http://localhost:5001/api/users/login', data);
+     
+            if (response.status === 200) {
+                const { redirectUrl, token } = response.data;
+                console.log(`Redirect URL: ${redirectUrl}`);
+                localStorage.setItem('token', token);
+                login(); // Mark the user as authenticated
+                navigate(redirectUrl);
+            } else {
+                alert('Login failed. Please check your credentials.');
+            }
+        } catch (error) {
+            console.error('Login failed:', error);
+            alert('Login failed. Please check your credentials.');
         }
-    } catch (error) {
-        console.error('Login failed:', error);
-        alert('Login failed. Please check your credentials.');
-    }
-};
-
+    };
     
     
-
+    
     const handleLanguageChange = (e) => {
         i18n.changeLanguage(e.target.value);
         setDropdownOpen(false);
@@ -67,6 +71,7 @@ const LoginPage = () => {
             fontFamily: "'Poppins', sans-serif",
             backgroundColor: '#e0f7fa',
             animation: 'fadeIn 1s ease-in-out',
+            flexDirection: 'row', // Initial layout for larger screens
         },
         leftSection: {
             flex: 1,
@@ -130,6 +135,7 @@ const LoginPage = () => {
             borderRadius: '30px',
             boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
             transition: 'transform 0.3s ease',
+            maxWidth: '90%',
         },
         input: {
             margin: '10px 0',
@@ -202,7 +208,76 @@ const LoginPage = () => {
         dropdownItemHover: {
             backgroundColor: '#e0f7fa',
         },
+        '@media (max-width: 1024px)': { // Tablets
+            container: {
+                flexDirection: 'column', // Stack sections vertically on tablets
+            },
+            form: {
+                padding: '40px 30px',
+                width: '80%', // Adjust width for smaller screens
+            },
+            slideImage: {
+                width: '80%',
+                top: '10px', // Reduce space for smaller screens
+                borderRadius: '15px',
+            },
+            button: {
+                padding: '10px 25px',
+                fontSize: '0.9rem',
+            },
+        },
+        '@media (max-width: 768px)': { // Small tablets and large phones
+            container: {
+                padding: '10px',
+                flexDirection: 'column',
+            },
+            form: {
+                width: '85%', // Further adjust width for smaller screens
+                padding: '30px 20px',
+            },
+            slideImage: {
+                width: '70%',
+            },
+            button: {
+                padding: '8px 20px',
+                fontSize: '0.85rem',
+            },
+        },
+        '@media (max-width: 480px)': { // Mobile devices
+            container: {
+                flexDirection: 'column',
+                padding: '5px',
+            },
+            formSection: {
+                padding: '10px', // Reduce padding on small screens
+            },
+            form: {
+                width: '95%', // Max width on mobile
+                padding: '20px 15px', // Smaller padding for mobile
+                borderRadius: '20px',
+            },
+            slideImage: {
+                width: '85%',
+                borderRadius: '10px',
+            },
+            button: {
+                padding: '7px 15px',
+                fontSize: '0.8rem',
+            },
+            dotsWrapper: {
+                bottom: '10px',
+            },
+            dot: {
+                height: '8px',
+                width: '8px',
+            },
+            languageButton: {
+                padding: '8px 15px',
+                fontSize: '0.85rem',
+            },
+        },
     };
+    
 
     return (
         <div style={styles.container}>

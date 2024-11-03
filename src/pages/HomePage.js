@@ -26,6 +26,7 @@ const HomePage = () => {
             fontFamily: 'Arial, sans-serif',
             position: 'relative',
             overflow: 'hidden',
+            padding: '10px 20px',
         },
         title: {
             fontSize: '3rem',
@@ -33,6 +34,7 @@ const HomePage = () => {
             marginBottom: '20px',
             position: 'relative',
             zIndex: 2,
+            animation: 'float 5s infinite', // Adding the floating animation directly
         },
         button: {
             padding: '10px 20px',
@@ -49,11 +51,13 @@ const HomePage = () => {
         linkContainer: {
             display: 'flex',
             justifyContent: 'center',
+            flexWrap: 'wrap',
+            gap: '10px',
             zIndex: 2,
         },
         languageButton: {
             position: 'absolute',
-            top: '20px',
+            top: '40px',
             right: '20px',
             padding: '10px 20px',
             fontSize: '1rem',
@@ -79,7 +83,20 @@ const HomePage = () => {
             padding: '10px 20px',
             cursor: 'pointer',
         },
+        '@media (max-width: 1024px)': {
+            title: { fontSize: '2.5rem' },
+            button: { fontSize: '0.9rem', padding: '8px 16px' },
+            container: { padding: '15px' },
+        },
+        '@media (max-width: 600px)': {
+            title: { fontSize: '2rem' },
+            button: { fontSize: '0.8rem', padding: '6px 12px' },
+            container: { padding: '20px', justifyContent: 'space-around' },
+            linkContainer: { flexDirection: 'column', gap: '10px' },
+        },
     };
+    
+    
 
     return (
         <div style={styles.container}>
@@ -95,28 +112,21 @@ const HomePage = () => {
                 <div style={styles.dropdownItem} onClick={() => changeLanguage('en')}>English</div>
                 <div style={styles.dropdownItem} onClick={() => changeLanguage('hi')}>हिन्दी</div>
                 <div style={styles.dropdownItem} onClick={() => changeLanguage('mar')}>मराठी</div>
-                
-                
+
+
             </div>
 
             <style>
 {`
-    /* CSS for floating title (unchanged) */
+    /* Floating title animation */
     .floating-title {
-        position: absolute;
-        animation: float 5s infinite;
+        animation: float 5s ease-in-out infinite;
     }
 
     @keyframes float {
-        0% {
-            transform: translateY(0);
-        }
-        50% {
-            transform: translateY(-10px);
-        }
-        100% {
-            transform: translateY(0);
-        }
+        0% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+        100% { transform: translateY(0); }
     }
 
     /* Rain animation for medical objects */
@@ -129,52 +139,53 @@ const HomePage = () => {
         opacity: 0.9; /* Slight transparency for a smooth effect */
     }
 
-    /* Keyframes for rain effect */
     @keyframes rain {
-        0% {
-            transform: translateY(-100px); /* Start offscreen */
-            opacity: 0; /* Fade in at the start */
-        }
-        10% {
-            opacity: 1;
-        }
-        100% {
-            transform: translateY(110vh); /* Fall to bottom of screen */
-            opacity: 0; /* Fade out near the bottom */
-        }
+        0% { transform: translateY(-100px); opacity: 0; }
+        10% { opacity: 1; }
+        100% { transform: translateY(110vh); opacity: 0; }
     }
 
     /* Specific styles for each object to randomize their horizontal positions and speed */
-    .health-care {
-        left: 10%; /* Random horizontal start */
-        animation-duration: 15s; /* Vary duration for realism */
+    .health-care { left: 10%; animation-duration: 15s; }
+    .hospital { left: 30%; animation-duration: 12s; }
+    .immunization { left: 50%; animation-duration: 14s; }
+    .medical-care { left: 70%; animation-duration: 13s; }
+    .medical-record { left: 90%; animation-duration: 11s; }
+    .pill { left: 20%; animation-duration: 16s; }
+    .products { left: 60%; animation-duration: 14s; }
+
+    /* Responsive styling */
+    @media (max-width: 1024px) {
+        .floating-title {
+            font-size: 2.5rem;
+        }
+        .button, .languageButton {
+            font-size: 0.9rem;
+            padding: 8px 16px;
+        }
     }
-    .hospital {
-        left: 30%;
-        animation-duration: 12s;
-    }
-    .immunization {
-        left: 50%;
-        animation-duration: 14s;
-    }
-    .medical-care {
-        left: 70%;
-        animation-duration: 13s;
-    }
-    .medical-record {
-        left: 90%;
-        animation-duration: 11s;
-    }
-    .pill {
-        left: 20%;
-        animation-duration: 16s;
-    }
-    .products {
-        left: 60%;
-        animation-duration: 14s;
+
+    /* For mobile devices (600px and below) */
+    @media (max-width: 600px) {
+        .floating-title {
+            font-size: 2rem;
+        }
+        .button, .languageButton {
+            font-size: 0.8rem;
+            padding: 6px 12px;
+        }
+        .container {
+            padding: 20px;
+            justify-content: space-around;
+        }
+        .linkContainer {
+            flex-direction: column;
+            gap: 10px;
+        }
     }
 `}
 </style>
+
 
 
             {/* Images revolving around the center */}
