@@ -352,11 +352,12 @@ const RegisterPage = () => {
                         onChange={(e) => setUserType(e.target.value)}
                         style={styles.select}
                     >
-                        <option value="Normal Patient">{t('Normal Patient')}</option>
+                        <option value="Normal Patient">{t('Patient')}</option>
                         <option value="Hospital Doc">{t('Hospital Doc')}</option>
                         <option value="Nurse/Ward Boy">{t('Nurse/Ward Boy')}</option>
                         <option value="Lab Staff">{t('Lab Staff')}</option>
                         <option value="Pharmacy">{t('Pharmacy')}</option>
+                        <option value="Nominee">{t('Nominee')}</option>
                     </select>
                     <button
                         type="submit"

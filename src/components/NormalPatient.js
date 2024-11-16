@@ -21,29 +21,46 @@
                 .catch(error => console.error('Error fetching appointments:', error));
         }, []);
 
-        // Real-time updates from the server
-        useEffect(() => {
-            socket.on('updateAppointment', ({ action, data, id }) => {
-                setAppointments(prevAppointments => {
-                    switch (action) {
-                        case 'add':
-                            return [...prevAppointments, data];
-                        case 'delete':
-                            return prevAppointments.filter(app => app.id !== id);
-                        case 'postpone':
-                            return prevAppointments.map(app => (app.id === data.id ? data : app));
-                        case 'complete':
-                            return prevAppointments.map(app => (app.id === data.id ? data : app));
-                        default:
-                            return prevAppointments;
-                    }
-                });
+
+
+        // Polling and socket event updates
+    useEffect(() => {
+        const fetchAppointments = async () => {
+            try {
+                const response = await axios.get('http://localhost:5001/api/appointments');
+                setAppointments(response.data);
+            } catch (error) {
+                console.error('Error fetching appointments:', error);
+            }
+        };
+
+        fetchAppointments(); // Initial fetch
+        const intervalId = setInterval(fetchAppointments, 5000); // Polling every 5 seconds
+
+        socket.on('connect', () => console.log('Connected to Socket.io server'));
+
+        socket.on('updateAppointment', ({ action, data, id }) => {
+            setAppointments((prevAppointments) => {
+                switch (action) {
+                    case 'add':
+                        return [...prevAppointments, data];
+                    case 'delete':
+                        return prevAppointments.filter(app => app.id !== id);
+                    case 'postpone':
+                    case 'complete':
+                        return prevAppointments.map(app => (app.id === data.id ? data : app));
+                    default:
+                        return prevAppointments;
+                }
             });
-    
-            return () => {
-                socket.off('updateAppointment');
-            };
-        }, []);
+        });
+
+        return () => {
+            clearInterval(intervalId);
+            socket.off('updateAppointment');
+        };
+    }, []);
+
 
     const [medicalRecords, setMedicalRecords] = useState([]);
     const [newMedicalRecord, setNewMedicalRecord] = useState({ date: '', name: '', result: '' });
@@ -275,12 +292,11 @@
         };
     }, []);
 
-    const handleAddAppointment = async () => {
+     const handleAddAppointment = async () => {
         try {
             const response = await axios.post('http://localhost:5001/api/appointments', newAppointment);
             setAppointments([...appointments, response.data]);
             setNewAppointment({ name: '', time: '' });
-            // Emit socket event to notify other dashboard
             socket.emit('updateAppointment', { action: 'add', data: response.data });
         } catch (err) {
             console.error('Error adding appointment:', err);
@@ -439,7 +455,7 @@
                             <Link to="/normalpatient" style={styles.navItem}>Profile</Link>
                         </li>
                         <li>
-                            <Link to="/normalpatient" style={styles.navItem}>Settings</Link>
+                            <Link to="/nominee" style={styles.navItem}>Add a Nominee</Link>
                         </li>
                         <li style={styles.navItem} onClick={handleLogout}><FiLogOut /> Log Out</li>
                     </ul>
@@ -647,13 +663,15 @@
 };
 
 const styles = {
+     // Main container for the dashboard layout with flex row direction for desktop view
     dashboardContainer: {
         display: 'flex',
         height: '100vh',
         fontFamily: "'Poppins', sans-serif",
         backgroundColor: '#f0f4f7',
-        flexDirection: 'row', // Default row layout for larger screens
+        flexDirection: 'row',
     },
+    // Sidebar styling: fixed width, green background, and spaced items for navigation
     sidebar: {
         width: '250px',
         backgroundColor: '#097969',
@@ -664,6 +682,7 @@ const styles = {
         justifyContent: 'space-between',
         boxShadow: '2px 0 5px rgba(0, 0, 0, 0.1)',
     },
+    // Styling for logo container within the sidebar
     logoContainer: {
         textAlign: 'right',
         marginBottom: '20px',
@@ -673,6 +692,7 @@ const styles = {
         marginBottom: '20px',
         marginRight: '70px',
     },
+    // Main navigation list styling within sidebar
     navList: {
         listStyleType: 'none',
         padding: 0,
@@ -709,6 +729,7 @@ const styles = {
         backgroundColor: '#f9f9f9',
         boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
     },
+    // Main content area where different sections are displayed
     mainContent: {
         flex: 1,
         padding: '20px',
@@ -747,6 +768,7 @@ const styles = {
         paddingTop: '20px',
         borderTop: '1px solid #fff',
     },
+    // Individual section styling for content blocks like appointments, medical records, etc.
     schedulerSection: {
         padding: '20px',
         backgroundColor: '#f9f9f9',
@@ -802,6 +824,7 @@ const styles = {
         borderRadius: '8px',
         boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
     },
+    // Button styling for actions such as adding or deleting records
     button: {
         backgroundColor: '#0d47a1',
         color: '#fff',
@@ -811,12 +834,14 @@ const styles = {
         cursor: 'pointer',
         marginLeft: '10px',
     },
+    // General input field styling with padding and border radius
     input: {
         marginRight: '10px',
         padding: '8px',
         borderRadius: '4px',
         border: '1px solid #ccc',
     },
+    // Styling for upload section within the reports section
     uploadSection: {
         marginBottom: '20px',
         padding: '15px',
@@ -850,7 +875,8 @@ const styles = {
         border: 'none',
         borderRadius: '5px',
         cursor: 'pointer',
-        marginLeft: '25px'
+        marginLeft: '25px',
+        //display: 'none' 
     },
     '@keyframes fadeIn': {
         from: { opacity: 0 },
@@ -941,6 +967,7 @@ const styles = {
             textAlign: 'center',
             margin: '10px 0', 
         },
+        
     },
 };  
 

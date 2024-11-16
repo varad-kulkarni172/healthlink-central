@@ -44,93 +44,91 @@ const Dashboard = () => {
                 const response = await axios.get('http://localhost:5001/api/dashboard_appointments');
                 setAppointments(response.data);
                 updateMetrics(response.data); // Update metrics with fetched data
-                // Initialize chart with existing appointment data
-                const labels = response.data.map(app => app.time);
-                const dataPoints = response.data.map((_, index) => index + 1);
-                setData(prevData => ({
-                    ...prevData,
-                    labels,
-                    datasets: [{
-                        ...prevData.datasets[0],
-                        data: dataPoints,
-                    }],
-                }));
+                initializeChart(response.data);
             } catch (error) {
                 console.error('Error fetching appointments:', error);
             }
         };
 
         fetchAppointments();
+        const intervalId = setInterval(fetchAppointments, 5000); // Poll every 5 seconds
+
+        // Socket setup for real-time synchronization
+        socket.on('connect', () => console.log('Connected to Socket.io server'));
+        socket.on('updateAppointment', handleSocketUpdate);
+
+        return () => {
+            clearInterval(intervalId);
+            socket.off('updateAppointment', handleSocketUpdate);
+        };
     }, []);
 
-    const updateMetrics = (appointments) => {
-        const waitingToConsult = appointments.filter(app => app.status === 'Pending').length;
-        const totalPrescribedCount = appointments.length; // or your logic for prescribed count
-        const appointmentsForTomorrow = appointments.filter(app => new Date(app.time).setHours(0, 0, 0, 0) === new Date().setHours(0, 0, 0, 0) + 86400000).length; // assuming time is in the correct format
+    // Function to initialize chart data
+    const initializeChart = (appointmentsData) => {
+        const labels = appointmentsData.map(app => app.time);
+        const dataPoints = appointmentsData.map((_, index) => index + 1);
+        setData(prevData => ({
+            ...prevData,
+            labels,
+            datasets: [{ ...prevData.datasets[0], data: dataPoints }],
+        }));
+    };
+
+    // Metrics updater
+    const updateMetrics = (appointmentsData) => {
+        const waitingToConsult = appointmentsData.filter(app => app.status === 'Pending').length;
+        const totalPrescribedCount = appointmentsData.length; // Total count or other logic
+        const appointmentsForTomorrow = appointmentsData.filter(app =>
+            new Date(app.time).setHours(0, 0, 0, 0) === new Date().setHours(0, 0, 0, 0) + 86400000
+        ).length;
 
         setMetrics({ waitingToConsult, totalPrescribedCount, appointmentsForTomorrow });
     };
 
-    useEffect(() => {
-        socket.on('updateAppointment', ({ action, data, id }) => {
-            setAppointments(prevAppointments => {
-                let updatedAppointments;
-                switch (action) {
-                    case 'add':
-                        updatedAppointments = [...prevAppointments, data];
-                        break;
-                    case 'delete':
-                        updatedAppointments = prevAppointments.filter(appointment => appointment.id !== id);
-                        break;
-                    case 'postpone':
-                    case 'complete':
-                        updatedAppointments = prevAppointments.map(appointment => 
-                            appointment.id === data.id ? data : appointment
-                        );
-                        break;
-                    default:
-                        updatedAppointments = prevAppointments;
-                }
-                updateMetrics(updatedAppointments); // Update metrics based on the updated appointments
-                return updatedAppointments;
-            });
+    // Handle socket updates and update chart data in real time
+    const handleSocketUpdate = ({ action, data, id }) => {
+        setAppointments(prevAppointments => {
+            let updatedAppointments;
+            switch (action) {
+                case 'add':
+                    updatedAppointments = [...prevAppointments, data];
+                    updateChartData(data);
+                    break;
+                case 'delete':
+                    updatedAppointments = prevAppointments.filter(app => app.id !== id);
+                    break;
+                case 'postpone':
+                case 'complete':
+                    updatedAppointments = prevAppointments.map(app => (app.id === data.id ? data : app));
+                    break;
+                default:
+                    updatedAppointments = prevAppointments;
+            }
+            updateMetrics(updatedAppointments);
+            return updatedAppointments;
         });
-
-        return () => {
-            socket.off('updateAppointment');
-        };
-    }, []);
-
-    // Listen for real-time updates
-    useEffect(() => {
-        socket.on('newAppointment', (appointment) => {
-            setAppointments((prevAppointments) => [...prevAppointments, appointment]);
-            updateChartData(appointment);
-        });
-
-        return () => {
-            socket.off('newAppointment');
-        };
-    }, []);
-
-    const updateChartData = (appointment) => {
-        setData(prevData => ({
-            ...prevData,
-            labels: [...prevData.labels, appointment.time],
-            datasets: [{
-                ...prevData.datasets[0],
-                data: [...prevData.datasets[0].data, prevData.datasets[0].data.length + 1],
-            }],
-        }));
     };
+
+
+   // Update chart data when a new appointment is added
+   const updateChartData = (appointment) => {
+    setData(prevData => ({
+        ...prevData,
+        labels: [...prevData.labels, appointment.time],
+        datasets: [{
+            ...prevData.datasets[0],
+            data: [...prevData.datasets[0].data, prevData.datasets[0].data.length + 1],
+        }],
+    }));
+};
 
     const handleAddAppointment = async () => {
         try {
             const response = await axios.post('http://localhost:5001/api/dashboard_appointments', newAppointment);
             setNewAppointment({ name: '', time: '' });
-            const updatedAppointments = [...appointments, response.data];
-            updateMetrics(updatedAppointments); // Update metrics after adding appointment
             updateChartData(response.data);
+            updateMetrics([...appointments, response.data]);
+            socket.emit('updateAppointment', { action: 'add', data: response.data });
         } catch (err) {
             console.error('Error adding appointment:', err);
         }
@@ -239,46 +237,46 @@ const Dashboard = () => {
     const handlePostponeAppointment = async (id) => {
         try {
             const response = await axios.patch(`http://localhost:5001/api/dashboard_appointments/postpone/${id}`);
-            const updatedAppointments = appointments.filter(app => app.id !== id);
             setPostponedAppointments([...postponedAppointments, response.data]);
-            updateMetrics(updatedAppointments); // Update metrics after postponing appointment
+            updateMetrics([...appointments.filter(app => app.id !== id), response.data]);
+            socket.emit('updateAppointment', { action: 'postpone', data: response.data, id });
         } catch (err) {
             console.error('Error postponing appointment:', err);
         }
     };
 
-
     const handleCompleteAppointment = async (id) => {
         try {
             const response = await axios.patch(`http://localhost:5001/api/dashboard_appointments/complete/${id}`);
-            const updatedAppointments = appointments.filter(app => app.id !== id);
             setCompletedAppointments([...completedAppointments, response.data]);
-            updateMetrics(updatedAppointments); // Update metrics after completing appointment
+            updateMetrics([...appointments.filter(app => app.id !== id), response.data]);
+            socket.emit('updateAppointment', { action: 'complete', data: response.data, id });
         } catch (err) {
             console.error('Error completing appointment:', err);
         }
     };
 
-
-
     const handleDeleteCompletedAppointment = async (id) => {
         try {
             await axios.delete(`http://localhost:5001/api/dashboard_appointments/${id}`);
             setCompletedAppointments(completedAppointments.filter(app => app.id !== id));
+            socket.emit('updateAppointment', { action: 'delete', id });
         } catch (err) {
             console.error('Error deleting appointment:', err);
         }
     };
 
-
-
     const handleMoveUpPostponedAppointment = (id) => {
-        const appointment = postponedAppointments.find((app) => app.id === id);
-        setPostponedAppointments(postponedAppointments.filter((app) => app.id !== id));
-        setAppointments([...appointments, { ...appointment, status: 'Pending' }]);
+        const appointment = postponedAppointments.find(app => app.id === id);
+        setPostponedAppointments(postponedAppointments.filter(app => app.id !== id));
+        const updatedAppointment = { ...appointment, status: 'Pending' };
+        setAppointments([...appointments, updatedAppointment]);
+        socket.emit('updateAppointment', { action: 'add', data: updatedAppointment });
     };
 
     const navigate = useNavigate();
+
+    
     const [activeTab, setActiveTab] = useState('Dashboard');
 
     const dashboardRef = useRef(null);
@@ -555,6 +553,7 @@ const Dashboard = () => {
 };
 
 const styles = {
+    // Main container for the dashboard with flex layout and row direction for desktop view
     dashboardContainer: {
         display: 'flex',
         height: '100vh',
@@ -562,6 +561,7 @@ const styles = {
         backgroundColor: '#f0f4f7',
         flexDirection: 'row', // Default row layout for larger screens
     },
+    // Sidebar styling with fixed width, dark blue background, and column layout for navigation items
     sidebar: {
         width: '250px',
         backgroundColor: '#0d47a1',
@@ -572,19 +572,23 @@ const styles = {
         justifyContent: 'space-between',
         boxShadow: '2px 0 5px rgba(0, 0, 0, 0.1)',
     },
+     // Logo container within the sidebar, aligned to the right
     logoContainer: {
         textAlign: 'right',
         marginBottom: '20px',
     },
+    // Logo image styling in the sidebar
     logo: {
         width: '120px',
         marginBottom: '20px',
         marginRight: '70px',
     },
+     // Unordered list for navigation items in the sidebar
     navList: {
         listStyleType: 'none',
         padding: 0,
     },
+    // Individual navigation item style, with border transition effect on hover
     navItem: {
         display: 'flex',
         alignItems: 'center',
@@ -595,21 +599,26 @@ const styles = {
         transition: 'border-bottom 0.3s',
         cursor: 'pointer',
     },
+    // Style for the active navigation item with a thick black bottom border
     activeNavItem: {
         borderBottom: '9px solid black',
     },
+     // Style for hover effect on navigation items
     navItemHovered: {
         borderBottom: '9px solid #fff',
     },
+    // Icon style for navigation items
     navItemIcon: {
         marginRight: '10px',
     },
+    // Section for charts, centered with padding, used in the main content
     chartsSection: {
         display: 'flex',
         justifyContent: 'center',
         padding: '20px',
         width: '100%',
     },
+    // Chart container for line graphs, with rounded corners and shadow effect
     chartContainer: {
         width: '80%',
         padding: '20px',
@@ -617,23 +626,27 @@ const styles = {
         backgroundColor: '#f9f9f9',
         boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
     },
+     // Main content area with padding and scrollable content, contains dashboard elements
     mainContent: {
         flex: 1,
         padding: '20px',
         backgroundColor: '#fff',
         overflowY: 'scroll',
     },
+     // Header section for dashboard metrics with space between each metric
     header: {
         display: 'flex',
         justifyContent: 'space-between',
         marginBottom: '20px',
     },
+    // Container for individual metric cards, allowing wrapping on smaller screens
     metricsContainer: {
         display: 'flex',
         justifyContent: 'space-around',
         width: '100%',
         flexWrap: 'wrap', // Allow wrapping for smaller screens
     },
+    // Individual card style for metrics like appointment counts, with shadow and center alignment
     metricCard: {
         backgroundColor: '#f0f0f0',
         padding: '40px',
@@ -651,6 +664,7 @@ const styles = {
         backgroundColor: '#f9f9f9',
         boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
     },
+    // Style for the bottom navigation section in the sidebar, with a top border
     bottomNav: {
         paddingTop: '20px',
         borderTop: '1px solid #fff',
@@ -662,15 +676,18 @@ const styles = {
         boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
         marginBottom: '20px',
     },
+    // Container for form inputs and controls in the scheduler section
     formContainer: {
         display: 'flex',
         justifyContent: 'space-between',
         marginBottom: '20px',
         flexWrap: 'wrap', // Allow form fields to wrap on smaller screens
     },
+    // Focus effect for inputs in the form, changing border color
     inputFocus: {
         borderColor: '#0d47a1',
     },
+    // Hover effect for buttons, changing background color to a darker shade
     buttonHover: {
         backgroundColor: '#063373',
     },
@@ -700,6 +717,7 @@ const styles = {
         color: '#ff5722',
         fontWeight: 'bold',
     },
+    // Style for individual list items in the appointment list
     appointmentItem: {
         display: 'flex',
         justifyContent: 'space-between',
@@ -710,6 +728,7 @@ const styles = {
         borderRadius: '8px',
         boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
     },
+     // Style for buttons, applied across multiple sections like adding appointments or reports
     button: {
         backgroundColor: '#0d47a1',
         color: '#fff',
@@ -719,24 +738,29 @@ const styles = {
         cursor: 'pointer',
         marginLeft: '10px',
     },
+     // Input styling for text and date inputs in forms
     input: {
         marginRight: '10px',
         padding: '8px',
         borderRadius: '4px',
         border: '1px solid #ccc',
     },
+    // Styling for the section where new reports are uploaded
     uploadSection: {
         marginBottom: '20px',
         padding: '15px',
         backgroundColor: '#f8f9fa',
         borderRadius: '5px',
     },
+    // Styling for file input within the upload section
     fileInput: {
         margin: '5px 0',
     },
+    // List of uploaded reports, with top margin for spacing
     reportList: {
         marginTop: '15px',
     },
+     // Style for each report item in the list of uploaded reports
     reportItem: {
         display: 'flex',
         justifyContent: 'space-between',
@@ -744,13 +768,16 @@ const styles = {
         padding: '10px',
         borderBottom: '1px solid #ccc',
     },
+    // Link style for downloading/viewing reports, with blue color and no underline
     downloadLink: {
         color: '#007bff',
         textDecoration: 'none',
     },
+    // General section margin-top for consistency in spacing
     section: {
         marginTop: '20px',
     },
+     // Delete button style used in various sections for removing items
     deleteButton: {
         padding: '10px 10px',
         backgroundColor: '#dc3545',
@@ -792,6 +819,7 @@ const styles = {
             padding: '15px',
         },
     },
+     // Responsive styling for small tablets and large phones
     '@media (max-width: 768px)': { // Small tablets and large phones
         formContainer: {
             flexDirection: 'column',

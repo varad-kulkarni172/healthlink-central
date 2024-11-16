@@ -59,7 +59,7 @@ app.post('/api/appointments', (req, res) => {
     res.status(201).json(newAppointment);
 
     // Emit event for new appointment
-    io.emit('appointmentUpdated', { action: 'add', appointment: newAppointment });
+    io.emit('updateAppointment', { action: 'add', data: newAppointment });
 });
 
 // Postpone appointment
@@ -71,7 +71,7 @@ app.patch('/api/appointments/postpone/:id', (req, res) => {
         res.json(appointment);
 
         // Emit event for postponed appointment
-        io.emit('appointmentUpdated', { action: 'postpone', appointment });
+        io.emit('updateAppointment', { action: 'postpone', data: appointment });
     } else {
         res.status(404).json({ message: 'Appointment not found' });
     }
@@ -86,7 +86,7 @@ app.patch('/api/appointments/complete/:id', (req, res) => {
         res.json(appointment);
 
         // Emit event for completed appointment
-        io.emit('appointmentUpdated', { action: 'complete', appointment });
+        io.emit('updateAppointment', { action: 'complete', data: appointment });
     } else {
         res.status(404).json({ message: 'Appointment not found' });
     }
@@ -101,7 +101,7 @@ app.delete('/api/appointments/:id', (req, res) => {
         res.json(deletedAppointment);
 
         // Emit event for deleted appointment
-        io.emit('appointmentUpdated', { action: 'delete', id: appointmentId });
+        io.emit('updateAppointment', { action: 'delete', id: appointmentId });
     } else {
         res.status(404).json({ message: 'Appointment not found' });
     }

@@ -11,6 +11,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import NurseDashboard from './components/NurseDashboard';
 import LabStaffDashboard from './components/LabStaffDashboard';
 import PharmacyDashboard from './components/PharmacyDashboard';
+import Nominee from './components/Nominee';
 
 
 
@@ -39,6 +40,7 @@ function App() {
                 <Route path="/nursedashboard" element={<NurseDashboard />} />
                 <Route path="/labstaffdashboard" element={<LabStaffDashboard />} />
                 <Route path="/pharmacydashboard" element={<PharmacyDashboard />} />
+                <Route path="/nominee" element={<Nominee />} />
             </Routes>
         </Router>
         </AuthProvider>
