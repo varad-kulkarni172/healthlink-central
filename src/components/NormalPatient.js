@@ -464,6 +464,8 @@
 
             <main style={styles.mainContent}>
                 <section style={styles.schedulerSection} ref={appointmentsRef}>
+                    <h2>Nominee: N/A</h2>
+                    <h2>Family Physician: Dr. Meenia</h2>
                     <h2>Scheduler</h2>
                     <div>
                         <h3>Add New Appointment</h3>
