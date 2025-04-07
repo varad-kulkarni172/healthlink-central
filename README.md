@@ -4,25 +4,25 @@ HealthLink Central is a comprehensive platform designed to streamline healthcare
 
 ## Features
 
-- **Appointment Scheduling:** Easily book and manage appointments with healthcare professionals.
-- **Medical Records Management:** Securely store and access patient medical histories.
-- **Communication Portal:** Facilitate seamless communication between patients and healthcare providers.
-- **User Authentication:** Ensure data privacy with robust authentication mechanisms.
+- **Appointment Scheduling:** Easily book and manage appointments with healthcare professionals.
+- **Medical Records Management:** Securely store and access patient medical histories.
+- **Communication Portal:** Facilitate seamless communication between patients and healthcare providers.
+- **User Authentication:** Ensure data privacy with robust authentication mechanisms.
 
 ## Technologies Used
 
-- **Frontend:** React.js
-- **Backend:** Node.js with Express
-- **Database:** MongoDB
-- **Authentication:** JSON Web Tokens (JWT)
+- **Frontend:** React.js
+- **Backend:** Node.js with Express
+- **Database:** MongoDB
+- **Authentication:** JSON Web Tokens (JWT)
 
 ## Prerequisites
 
 Before you begin, ensure you have the following installed:
 
-- [Node.js](https://nodejs.org/) (v14 or later)
-- [MongoDB](https://www.mongodb.com/)
-- [Git](https://git-scm.com/)
+- [Node.js](https://nodejs.org/) (v14 or later)
+- [MongoDB](https://www.mongodb.com/)
+- [Git](https://git-scm.com/)
 
 ## Installation and Setup
 
@@ -48,8 +48,8 @@ Follow these steps to set up and run HealthLink Central on your local machine:
 
 4. **Set Up Environment Variables:**
 
-   - Create a `.env` file in the root directory.
-   - Add the following environment variables:
+   - Create a `.env` file in the root directory.
+   - Add the following environment variables:
 
      ```env
      MONGO_URI=your_mongodb_connection_string
@@ -88,15 +88,15 @@ Follow these steps to set up and run HealthLink Central on your local machine:
 
 1. **Access the Application:**
 
-   - Open your browser and navigate to `http://localhost:3000`.
+   - Open your browser and navigate to `http://localhost:3000`.
 
 2. **Register an Account:**
 
-   - Sign up as a patient or healthcare provider.
+   - Sign up as a patient or healthcare provider.
 
 3. **Explore Features:**
 
-   - Schedule appointments, manage medical records, and communicate with healthcare professionals.
+   - Schedule appointments, manage medical records, and communicate with healthcare professionals.
 
 ## Contributing
 
@@ -125,7 +125,7 @@ We welcome contributions to enhance HealthLink Central. To contribute:
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ---
 
